@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title %}10%+ Profit Opportunities - Tadawul Advisor{% endblock %}
+
+{% block content %}
+
+{% if error %}
+<div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <p class="text-red-700 text-sm">{{ error }}</p>
+</div>
+{% endif %}
+
+<!-- Page order badge -->
+<div class="flex items-center justify-between mb-4">
+    <div class="flex items-center space-x-2">
+        <span class="w-7 h-7 bg-emerald-600 text-white rounded-full text-sm flex items-center justify-center font-black">1</span>
+        <span class="text-xs text-gray-400">Best Feature</span>
+    </div>
+    <a href="/bottom-fishing" class="text-xs text-amber-600 hover:text-amber-700 font-medium">Next: Bottom Fishing &rarr;</a>
+</div>
+
+<!-- Header -->
+<div class="text-center mb-8">
+    <h2 class="text-3xl font-bold text-gray-900">High-Profit Opportunities</h2>
+    <p class="text-gray-500 mt-1">
+        <span x-show="lang==='en'">AI-detected setups with <span class="font-bold text-emerald-600">10%+ profit potential</span> in Sharia-compliant Saudi stocks</span>
+        <span x-show="lang==='ar'" x-cloak class="text-lg text-emerald-600 font-bold">فرص ربح 10%+ جاهزة للدخول في أسهم متوافقة مع الشريعة</span>
+    </p>
+    <p class="text-xs text-gray-400 mt-1">{{ total }} opportunities found</p>
+</div>
+
+<!-- ═══ BUY NOW OPPORTUNITIES ═══ -->
+{% if buy_opps %}
+<div class="mb-10">
+    <div class="flex items-center space-x-3 mb-4">
+        <span class="px-3 py-1 bg-green-600 text-white text-sm font-bold rounded-full">BUY NOW</span>
+        <h3 class="text-lg font-bold text-gray-900">Ready to Enter ({{ buy_opps|length }})</h3>
+    </div>
+
+    <div class="space-y-4">
+        {% for o in buy_opps %}
+        <div class="bg-white rounded-xl shadow-sm border-l-4 border-green-500 p-5 hover:shadow-md transition-shadow">
+            <div class="flex flex-col lg:flex-row justify-between gap-4">
+                <!-- Left: Stock info + setup -->
+                <div class="flex-1">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <h4 class="text-lg font-bold text-gray-900">{{ o.name }}</h4>
+                        <span class="text-sm text-gray-500">{{ o.ticker }}</span>
+                        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">{{ o.setup_type }}</span>
+                        <span class="px-2 py-0.5 text-[10px] font-bold rounded-full
+                            {% if o.probability == 'High' %}bg-green-100 text-green-700{% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                            {{ o.probability }} Probability
+                        </span>
+                    </div>
+
+                    <div class="flex items-center space-x-4 mb-3">
+                        <span class="text-2xl font-bold text-gray-900">{{ "%.2f"|format(o.current_price) }} SAR</span>
+                        <span class="text-sm font-medium px-2 py-0.5 rounded-full
+                            {% if o.change_pct > 0 %}bg-green-100 text-green-700{% elif o.change_pct < 0 %}bg-red-100 text-red-700{% else %}bg-gray-100 text-gray-600{% endif %}">
+                            {% if o.change_pct > 0 %}+{% endif %}{{ "%.2f"|format(o.change_pct) }}%
+                        </span>
+                        <span class="text-xs text-gray-500">{{ o.sector }} &middot; ATR {{ "%.1f"|format(o.atr_pct) }}%</span>
+                    </div>
+
+                    <!-- Reasons -->
+                    <div class="space-y-1 mb-3">
+                        {% for reason in o.reasons %}
+                        <div class="flex items-start space-x-2 text-sm">
+                            <span class="text-green-500 mt-0.5 flex-shrink-0">&#10003;</span>
+                            <span class="text-gray-700">{{ reason }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% if o.risks %}
+                    <div class="space-y-1">
+                        {% for risk in o.risks %}
+                        <div class="flex items-start space-x-2 text-xs">
+                            <span class="text-amber-500 mt-0.5">!</span>
+                            <span class="text-amber-700">{{ risk }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Right: Trade plan -->
+                <div class="lg:w-72 flex-shrink-0">
+                    <!-- Profit badge -->
+                    <div class="text-center mb-3 p-3 bg-green-50 rounded-xl border border-green-200">
+                        <p class="text-xs text-green-600 font-bold uppercase">Expected Profit</p>
+                        <p class="text-3xl font-black text-green-700">+{{ "%.0f"|format(o.profit_pct) }}%</p>
+                        <p class="text-xs text-gray-500">{{ o.timeframe }}</p>
+                    </div>
+
+                    <!-- Entry / Target / Stop -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm bg-blue-50 rounded-lg px-3 py-2">
+                            <span class="text-blue-600 font-medium">Entry</span>
+                            <span class="font-bold text-blue-700">{{ "%.2f"|format(o.entry_price) }}</span>
+                        </div>
+                        <div class="flex justify-between text-sm bg-green-50 rounded-lg px-3 py-2">
+                            <span class="text-green-600 font-medium">Target</span>
+                            <span class="font-bold text-green-700">{{ "%.2f"|format(o.target_price) }} (+{{ "%.1f"|format(o.profit_pct) }}%)</span>
+                        </div>
+                        <div class="flex justify-between text-sm bg-red-50 rounded-lg px-3 py-2">
+                            <span class="text-red-600 font-medium">Stop Loss</span>
+                            <span class="font-bold text-red-700">{{ "%.2f"|format(o.stop_loss) }} (-{{ "%.1f"|format(o.risk_pct) }}%)</span>
+                        </div>
+                    </div>
+
+                    <!-- R:R + Confidence -->
+                    <div class="flex justify-between mt-3 text-xs">
+                        <div>
+                            <span class="text-gray-500">R:R</span>
+                            <span class="font-bold ml-1
+                                {% if o.risk_reward >= 3 %}text-green-600{% elif o.risk_reward >= 2 %}text-green-500{% else %}text-yellow-600{% endif %}">
+                                {{ o.risk_reward }}:1
+                            </span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">Confidence</span>
+                            <span class="font-bold ml-1 text-gray-800">{{ o.confidence|round(0)|int }}%</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">RSI</span>
+                            <span class="font-bold ml-1
+                                {% if o.rsi < 40 %}text-green-600{% elif o.rsi > 70 %}text-red-600{% else %}text-gray-700{% endif %}">
+                                {{ o.rsi|round(0)|int }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Links -->
+                    <div class="flex space-x-2 mt-3">
+                        <a href="/swing?q={{ o.ticker }}" class="flex-1 text-center py-1.5 bg-primary-50 text-primary-700 rounded-lg text-xs font-medium hover:bg-primary-100">
+                            Timing Check
+                        </a>
+                        <a href="/report/{{ o.ticker }}" class="flex-1 text-center py-1.5 bg-gray-50 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-100">
+                            Full Report
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- ═══ WATCH LIST ═══ -->
+{% if watch_opps %}
+<div class="mb-10">
+    <div class="flex items-center space-x-3 mb-4">
+        <span class="px-3 py-1 bg-yellow-500 text-white text-sm font-bold rounded-full">WATCH</span>
+        <h3 class="text-lg font-bold text-gray-900">Developing Setups - Wait for Better Entry ({{ watch_opps|length }})</h3>
+    </div>
+
+    <div class="space-y-3">
+        {% for o in watch_opps %}
+        <div class="bg-white rounded-xl shadow-sm border-l-4 border-yellow-400 p-4 hover:shadow-md transition-shadow">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <div class="flex items-center space-x-3 mb-1">
+                        <h4 class="font-bold text-gray-900">{{ o.name }}</h4>
+                        <span class="text-sm text-gray-500">{{ o.ticker }}</span>
+                        <span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-full">{{ o.setup_type }}</span>
+                    </div>
+                    <p class="text-sm text-gray-600">{{ o.explanation }}</p>
+                    {% if o.risks %}
+                    <p class="text-xs text-amber-600 mt-1">{{ o.risks[0] }}</p>
+                    {% endif %}
+                </div>
+                <div class="text-right ml-4 flex-shrink-0">
+                    <p class="text-xl font-bold text-yellow-600">+{{ "%.0f"|format(o.profit_pct) }}%</p>
+                    <p class="text-sm text-gray-500">{{ "%.2f"|format(o.current_price) }} SAR</p>
+                    <p class="text-xs text-gray-400">Target: {{ "%.2f"|format(o.target_price) }}</p>
+                    <p class="text-xs text-gray-400">{{ o.timeframe }}</p>
+                    <a href="/report/{{ o.ticker }}" class="text-xs text-primary-600 hover:text-primary-700 font-medium">
+                        Details &rarr;
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if not buy_opps and not watch_opps %}
+<div class="text-center py-16 text-gray-500">
+    <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <p class="text-lg font-medium">No 10%+ opportunities detected right now</p>
+    <p class="text-sm">The scanner checks every 15 minutes. Market conditions may not be favorable today.</p>
+</div>
+{% endif %}
+
+<!-- Disclaimer -->
+<div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-6">
+    <p class="text-xs text-amber-800">
+        <span class="font-bold">Risk Warning:</span> High-profit targets (10%+) inherently carry higher risk.
+        These are AI-detected setups, not guaranteed outcomes. Always use stop losses.
+        Past patterns do not guarantee future results. Invest responsibly.
+    </p>
+</div>
+
+{% endblock %}

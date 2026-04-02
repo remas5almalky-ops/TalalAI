@@ -1,0 +1,88 @@
+{% if recommendations %}
+<div class="overflow-x-auto">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="bg-gray-50 text-left">
+                <th class="px-4 py-3 font-semibold text-gray-600">Stock</th>
+                <th class="px-4 py-3 font-semibold text-gray-600">Price (SAR)</th>
+                <th class="px-4 py-3 font-semibold text-gray-600">Change</th>
+                <th class="px-4 py-3 font-semibold text-gray-600">Score</th>
+                <th class="px-4 py-3 font-semibold text-gray-600">Action</th>
+                <th class="px-4 py-3 font-semibold text-gray-600">Expected</th>
+                <th class="px-4 py-3 font-semibold text-gray-600">Trend</th>
+                <th class="px-4 py-3 font-semibold text-gray-600">Entry</th>
+                <th class="px-4 py-3 font-semibold text-gray-600">Target</th>
+                <th class="px-4 py-3 font-semibold text-gray-600">Stop Loss</th>
+                <th class="px-4 py-3 font-semibold text-gray-600"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+            {% for rec in recommendations %}
+            <tr class="hover:bg-gray-50 transition-colors
+                {% if rec.action == 'Strong Buy' %}bg-emerald-50/50{% endif %}">
+                <td class="px-4 py-3">
+                    <div>
+                        <p class="font-medium text-gray-900">{{ rec.stock.name }}</p>
+                        <p class="text-xs text-gray-500">
+                            {{ rec.stock.ticker }} &middot; {{ rec.stock.sector }}
+                            {% if rec.stock.sharia %}<span class="inline-block ml-1 px-1 py-0.5 bg-green-100 text-green-700 text-[9px] font-bold rounded">Sharia</span>{% endif %}
+                        </p>
+                    </div>
+                </td>
+                <td class="px-4 py-3 font-medium">{{ "%.2f"|format(rec.stock.current_price) }}</td>
+                <td class="px-4 py-3">
+                    <span class="font-medium {% if rec.stock.change_pct > 0 %}text-green-600{% elif rec.stock.change_pct < 0 %}text-red-600{% else %}text-gray-600{% endif %}">
+                        {% if rec.stock.change_pct > 0 %}+{% endif %}{{ "%.2f"|format(rec.stock.change_pct) }}%
+                    </span>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="inline-flex items-center justify-center w-10 h-10 rounded-full text-white font-bold text-xs
+                        {% if rec.opportunity_score >= 75 %}bg-emerald-600{% elif rec.opportunity_score >= 58 %}bg-green-500{% elif rec.opportunity_score >= 40 %}bg-yellow-500{% else %}bg-red-500{% endif %}">
+                        {{ rec.opportunity_score|round(0)|int }}
+                    </span>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="px-2 py-1 rounded-full text-xs font-bold
+                        {% if rec.action == 'Strong Buy' %}bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300
+                        {% elif rec.action == 'Buy' %}bg-green-100 text-green-800
+                        {% elif rec.action == 'Avoid' %}bg-red-100 text-red-800
+                        {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                        {{ rec.action }}
+                    </span>
+                </td>
+                <td class="px-4 py-3">
+                    {% if rec.predicted_move > 0 %}
+                    <span class="text-xs font-bold text-emerald-600">+{{ "%.1f"|format(rec.predicted_move) }}%</span>
+                    {% elif rec.predicted_move < 0 %}
+                    <span class="text-xs font-bold text-red-600">{{ "%.1f"|format(rec.predicted_move) }}%</span>
+                    {% else %}
+                    <span class="text-xs text-gray-400">-</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3">
+                    <span class="text-xs font-medium
+                        {% if rec.signals.trend == 'Uptrend' %}text-green-600{% elif rec.signals.trend == 'Downtrend' %}text-red-600{% else %}text-gray-500{% endif %}">
+                        {% if rec.signals.trend == 'Uptrend' %}&#8593;{% elif rec.signals.trend == 'Downtrend' %}&#8595;{% else %}&#8596;{% endif %}
+                        {{ rec.signals.trend }}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-blue-600 font-medium">{{ "%.2f"|format(rec.entry_price) }}</td>
+                <td class="px-4 py-3 text-green-600 font-medium">{{ "%.2f"|format(rec.target_price) }}</td>
+                <td class="px-4 py-3 text-red-600 font-medium">{{ "%.2f"|format(rec.stop_loss) }}</td>
+                <td class="px-4 py-3">
+                    <a href="/stock/{{ rec.stock.ticker }}" class="text-primary-600 hover:text-primary-700 font-medium text-xs">
+                        Details &rarr;
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<p class="text-sm text-gray-500 mt-3 px-4">Showing {{ recommendations|length }} stock(s)</p>
+{% else %}
+<div class="text-center py-12 text-gray-500">
+    <p class="text-lg font-medium">No stocks match your filters</p>
+    <p class="text-sm">Try adjusting your criteria</p>
+</div>
+{% endif %}

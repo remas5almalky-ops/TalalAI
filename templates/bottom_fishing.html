@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+{% block title %}Bottom Fishing - Tadawul Advisor{% endblock %}
+
+{% block content %}
+
+{% if error %}
+<div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <p class="text-red-700 text-sm">{{ error }}</p>
+</div>
+{% endif %}
+
+<!-- Page order badge -->
+<div class="flex items-center justify-between mb-4">
+    <div class="flex items-center space-x-2">
+        <a href="/opportunities" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium">&larr; Prev: 10%+ Opportunities</a>
+    </div>
+    <div class="flex items-center space-x-2">
+        <span class="w-7 h-7 bg-amber-600 text-white rounded-full text-sm flex items-center justify-center font-black">2</span>
+    </div>
+    <a href="/swing" class="text-xs text-blue-600 hover:text-blue-700 font-medium">Next: Swing Trade &rarr;</a>
+</div>
+
+<!-- Header -->
+<div class="text-center mb-6">
+    <h2 class="text-3xl font-bold text-gray-900">Bottom Fishing</h2>
+    <p class="text-sm text-gray-500 mt-2">
+        <span x-show="lang==='en'">Honest advice: not every cheap stock will recover. Stocks down 15%+ from highs with candid analysis.</span>
+        <span x-show="lang==='ar'" x-cloak>نصيحة صادقة: مو كل سهم رخيص بيرتفع. هذي الاسهم اللي نازلة 15%+ من القمة مع تحليل صريح</span>
+    </p>
+    <p class="text-xs text-gray-400 mt-1">{{ total }} candidates found</p>
+</div>
+
+<!-- Golden Rules Box -->
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6">
+    <h3 class="font-bold text-amber-800 text-sm mb-2">
+        <span x-show="lang==='en'">Golden Rules - When to buy a bottom stock:</span>
+        <span x-show="lang==='ar'" x-cloak>القواعد الذهبية - متى تشتري سهم بالقاع:</span>
+    </h3>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+        <div class="bg-white rounded-lg p-3 text-center">
+            <p class="font-bold text-amber-700">1. MACD Bullish</p>
+            <p class="text-gray-500 mt-1">
+                <span x-show="lang==='en'">Momentum must be turning positive</span>
+                <span x-show="lang==='ar'" x-cloak>الزخم لازم يكون تحول للشراء</span>
+            </p>
+        </div>
+        <div class="bg-white rounded-lg p-3 text-center">
+            <p class="font-bold text-amber-700">2. No Downtrend</p>
+            <p class="text-gray-500 mt-1">
+                <span x-show="lang==='en'">Uptrend or Sideways - not Downtrend</span>
+                <span x-show="lang==='ar'" x-cloak>Uptrend أو Sideways - مو Downtrend</span>
+            </p>
+        </div>
+        <div class="bg-white rounded-lg p-3 text-center">
+            <p class="font-bold text-amber-700">3. RSI 35-60</p>
+            <p class="text-gray-500 mt-1">
+                <span x-show="lang==='en'">Healthy zone - not extreme</span>
+                <span x-show="lang==='ar'" x-cloak>مو مبالغ فيه لا فوق ولا تحت</span>
+            </p>
+        </div>
+        <div class="bg-white rounded-lg p-3 text-center">
+            <p class="font-bold text-amber-700">4. Price Stable 30d</p>
+            <p class="text-gray-500 mt-1">
+                <span x-show="lang==='en'">Not crashing - must be forming a base</span>
+                <span x-show="lang==='ar'" x-cloak>مو لسه ينهار - لازم يكون قاع</span>
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Legend -->
+<div class="flex flex-wrap justify-center gap-3 mb-6">
+    <span x-show="lang==='en'" class="px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-xs font-bold">BUY = Real opportunity</span>
+    <span x-show="lang==='en'" class="px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">ACCUMULATE = Enter partial</span>
+    <span x-show="lang==='en'" class="px-3 py-1.5 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold">WAIT = Monitor</span>
+    <span x-show="lang==='en'" class="px-3 py-1.5 bg-orange-100 text-orange-800 rounded-full text-xs font-bold">AVOID = Don't enter</span>
+    <span x-show="lang==='en'" class="px-3 py-1.5 bg-red-100 text-red-800 rounded-full text-xs font-bold">STAY AWAY = Falling knife</span>
+    <span x-show="lang==='ar'" x-cloak class="px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-xs font-bold">اشتري = فرصة حقيقية</span>
+    <span x-show="lang==='ar'" x-cloak class="px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">تجميع = ادخل بجزء</span>
+    <span x-show="lang==='ar'" x-cloak class="px-3 py-1.5 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold">انتظر = راقب</span>
+    <span x-show="lang==='ar'" x-cloak class="px-3 py-1.5 bg-orange-100 text-orange-800 rounded-full text-xs font-bold">تجنب = لا تدخل</span>
+    <span x-show="lang==='ar'" x-cloak class="px-3 py-1.5 bg-red-100 text-red-800 rounded-full text-xs font-bold">ابتعد = سكين ساقط</span>
+</div>
+
+<!-- ═══ ALL STOCKS ═══ -->
+{% set verdicts = {'اشتري': 'green', 'تجميع': 'blue', 'انتظر': 'yellow', 'تجنب': 'orange', 'ابتعد!': 'red'} %}
+{% set current_verdict = {'val': ''} %}
+
+{% for b in (gold + silver + bronze) %}
+
+<!-- Section header when verdict changes -->
+{% if b.honest_verdict != current_verdict.val %}
+{% if current_verdict.update({'val': b.honest_verdict}) %}{% endif %}
+
+{% if not loop.first %}</div>{% endif %}
+
+<div class="mb-8">
+    <div class="flex items-center space-x-3 mb-4 mt-6">
+        <span class="px-4 py-2 rounded-full text-sm font-black text-white
+            {% if b.honest_verdict == 'اشتري' %}bg-green-600
+            {% elif b.honest_verdict == 'تجميع' %}bg-blue-600
+            {% elif b.honest_verdict == 'انتظر' %}bg-yellow-500
+            {% elif b.honest_verdict == 'تجنب' %}bg-orange-500
+            {% else %}bg-red-600{% endif %}">
+            <span x-show="lang==='en'">{{ b.honest_verdict_en }}</span>
+            <span x-show="lang==='ar'" x-cloak>{{ b.honest_verdict }}</span>
+        </span>
+        <p class="text-sm text-gray-500">
+            <span x-show="lang==='en'">{{ b.honest_reason_en }}</span>
+            <span x-show="lang==='ar'" x-cloak>{{ b.honest_reason_ar }}</span>
+        </p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+{% endif %}
+
+<!-- Stock Card -->
+<div class="bg-white rounded-xl shadow-sm border-l-4 p-5 hover:shadow-md transition-shadow
+    {% if b.honest_verdict == 'اشتري' %}border-green-500
+    {% elif b.honest_verdict == 'تجميع' %}border-blue-500
+    {% elif b.honest_verdict == 'انتظر' %}border-yellow-400
+    {% elif b.honest_verdict == 'تجنب' %}border-orange-400
+    {% else %}border-red-500{% endif %}">
+
+    <!-- Header -->
+    <div class="flex justify-between items-start mb-3">
+        <div>
+            <div class="flex items-center space-x-2">
+                <h4 class="text-lg font-bold text-gray-900">{{ b.name }}</h4>
+                <span class="text-sm text-gray-400">{{ b.ticker }}</span>
+            </div>
+            <p class="text-xs text-gray-500">{{ b.sector }} &middot; {{ b.name_ar }}</p>
+        </div>
+        <div class="text-right">
+            <p class="text-xl font-bold text-gray-900">{{ "%.2f"|format(b.current_price) }} <span class="text-xs text-gray-400">SAR</span></p>
+            <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold
+                {% if b.status == 'Early Recovery' %}bg-green-100 text-green-700
+                {% elif b.status == 'Bottoming Out' %}bg-yellow-100 text-yellow-700
+                {% else %}bg-red-100 text-red-700{% endif %}">
+                {{ b.status }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Price Range Bar -->
+    <div class="mb-3">
+        <div class="relative h-5 bg-gradient-to-r from-red-200 via-yellow-100 to-green-200 rounded-full overflow-hidden">
+            <div class="absolute h-5 w-1.5 bg-gray-800 rounded-full shadow"
+                 style="left: {{ [1, [b.position_52w, 99]|min]|max }}%"></div>
+            <span class="absolute left-1 top-1/2 -translate-y-1/2 text-[8px] text-red-700 font-bold">{{ "%.1f"|format(b.low_52w) }}</span>
+            <span class="absolute right-1 top-1/2 -translate-y-1/2 text-[8px] text-green-700 font-bold">{{ "%.1f"|format(b.high_52w) }}</span>
+        </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="grid grid-cols-4 gap-2 mb-3">
+        <div class="bg-red-50 rounded-lg p-2 text-center">
+            <p class="text-[8px] text-red-400 font-bold">النزول</p>
+            <p class="text-sm font-bold text-red-600">-{{ "%.0f"|format(b.drop_from_high_pct) }}%</p>
+        </div>
+        <div class="bg-green-50 rounded-lg p-2 text-center">
+            <p class="text-[8px] text-green-400 font-bold">الارتفاع المتوقع</p>
+            <p class="text-sm font-bold text-green-600">+{{ "%.0f"|format(b.upside_to_high_pct) }}%</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-2 text-center">
+            <p class="text-[8px] text-gray-400 font-bold">RSI</p>
+            <p class="text-sm font-bold {% if b.rsi < 40 %}text-green-600{% elif b.rsi > 65 %}text-yellow-600{% else %}text-gray-800{% endif %}">{{ b.rsi|round(0)|int }}</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-2 text-center">
+            <p class="text-[8px] text-gray-400 font-bold">30 يوم</p>
+            <p class="text-sm font-bold {% if b.change_30d > 0 %}text-green-600{% elif b.change_30d < -5 %}text-red-600{% else %}text-gray-800{% endif %}">
+                {{ "%+.1f"|format(b.change_30d) }}%</p>
+        </div>
+    </div>
+
+    <!-- ★ HONEST CHECKLIST ★ -->
+    <div class="bg-gray-50 rounded-lg p-3 mb-3">
+        <p class="text-[10px] font-bold text-gray-500 uppercase mb-2">
+            <span x-show="lang==='en'">Honest Checklist:</span>
+            <span x-show="lang==='ar'" x-cloak>التحقق الصادق:</span>
+        </p>
+        <div class="space-y-1.5">
+            {% for check in b.honest_checklist %}
+            <div class="flex items-center space-x-2 text-xs">
+                {% if check.pass %}
+                <span class="flex-shrink-0 w-5 h-5 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-[10px] font-bold">&#10003;</span>
+                {% else %}
+                <span class="flex-shrink-0 w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-[10px] font-bold">&#10007;</span>
+                {% endif %}
+                <span class="{% if check.pass %}text-gray-700{% else %}text-red-600 font-medium{% endif %}">
+                    <span x-show="lang==='en'">{{ check.rule_en }}</span>
+                    <span x-show="lang==='ar'" x-cloak>{{ check.rule }}</span>
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Trade Plan (only for Buy/Accumulate) -->
+    {% if b.honest_verdict in ('اشتري', 'تجميع') %}
+    <div class="bg-gray-50 rounded-lg p-3 mb-3">
+        <div class="grid grid-cols-2 gap-3 text-center">
+            <div>
+                <p class="text-[8px] text-gray-400 font-bold">
+                    <span x-show="lang==='en'">Conservative Target</span>
+                    <span x-show="lang==='ar'" x-cloak>هدف محافظ</span>
+                </p>
+                <p class="text-lg font-bold text-green-600">{{ "%.2f"|format(b.target_price) }}</p>
+                <p class="text-[10px] text-green-500">+{{ "%.0f"|format(b.profit_pct) }}%</p>
+            </div>
+            <div>
+                <p class="text-[8px] text-gray-400 font-bold">
+                    <span x-show="lang==='en'">Full Recovery</span>
+                    <span x-show="lang==='ar'" x-cloak>تعافي كامل</span>
+                </p>
+                <p class="text-lg font-bold text-emerald-600">{{ "%.2f"|format(b.target_price_full) }}</p>
+                <p class="text-[10px] text-emerald-500">+{{ "%.0f"|format(b.full_recovery_pct) }}%</p>
+            </div>
+        </div>
+        <div class="flex justify-between mt-2 pt-2 border-t border-gray-200 text-[10px]">
+            <span class="text-gray-500"><span x-show="lang==='en'">Entry</span><span x-show="lang==='ar'" x-cloak>دخول</span>: <span class="font-bold text-blue-600">{{ "%.2f"|format(b.entry_price) }}</span></span>
+            <span class="text-gray-500"><span x-show="lang==='en'">Stop</span><span x-show="lang==='ar'" x-cloak>وقف</span>: <span class="font-bold text-red-600">{{ "%.2f"|format(b.stop_loss) }}</span></span>
+            <span class="text-gray-500"><span x-show="lang==='en'">Risk</span><span x-show="lang==='ar'" x-cloak>مخاطرة</span>: <span class="font-bold">{{ "%.1f"|format(b.risk_pct) }}%</span></span>
+        </div>
+    </div>
+    {% elif b.honest_verdict == 'انتظر' %}
+    <div class="bg-yellow-50 rounded-lg p-3 mb-3 text-center">
+        <p class="text-xs text-yellow-700 font-medium">
+            <span x-show="lang==='en'">Monitor and enter when: Uptrend confirmed + MACD bullish + Price stabilized</span>
+            <span x-show="lang==='ar'" x-cloak>راقب السهم وادخل إذا: الترند تحول صاعد + MACD إيجابي + السعر استقر</span>
+        </p>
+        <p class="text-[10px] text-yellow-600 mt-1">
+            <span x-show="lang==='en'">If conditions met, target {{ "%.2f"|format(b.target_price) }} SAR (+{{ "%.0f"|format(b.profit_pct) }}%)</span>
+            <span x-show="lang==='ar'" x-cloak>لو تحققت الشروط، الهدف {{ "%.2f"|format(b.target_price) }} SAR (+{{ "%.0f"|format(b.profit_pct) }}%)</span>
+        </p>
+    </div>
+    {% else %}
+    <div class="bg-red-50 rounded-lg p-3 mb-3 text-center">
+        <p class="text-xs text-red-700 font-medium">
+            <span x-show="lang==='en'">{{ b.honest_reason_en }}</span>
+            <span x-show="lang==='ar'" x-cloak>{{ b.honest_reason_ar }}</span>
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Links -->
+    <div class="flex space-x-2">
+        <a href="/stock/{{ b.ticker }}" class="flex-1 text-center py-1.5 bg-primary-50 text-primary-700 rounded-lg text-xs font-medium hover:bg-primary-100">
+            التحليل الفني
+        </a>
+        <a href="/report/{{ b.ticker }}" class="flex-1 text-center py-1.5 bg-gray-50 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-100">
+            تقرير شامل
+        </a>
+    </div>
+</div>
+
+{% if loop.last %}</div></div>{% endif %}
+{% endfor %}
+
+{% if not (gold + silver + bronze) %}
+<div class="text-center py-16 text-gray-500">
+    <p class="text-lg font-medium">ما فيه اسهم بالقاع حالياً</p>
+</div>
+{% endif %}
+
+<!-- Disclaimer -->
+<div class="bg-gray-100 rounded-xl p-5 mt-8">
+    <div x-show="lang==='en'">
+        <p class="text-sm text-gray-700 font-bold mb-2">Important Warning:</p>
+        <ul class="text-xs text-gray-600 space-y-1">
+            <li>&#8226; A stock that drops 50% can drop another 50%. Decline doesn't guarantee recovery</li>
+            <li>&#8226; "BUY" means technical signals are positive - not a profit guarantee</li>
+            <li>&#8226; Always use stop losses. Don't risk more than you can afford to lose</li>
+            <li>&#8226; Recovery takes patience (1-6 months) - these are not quick trades</li>
+            <li>&#8226; This is technical analysis, not financial advice. Consult a licensed advisor</li>
+        </ul>
+    </div>
+    <div x-show="lang==='ar'" x-cloak>
+        <p class="text-sm text-gray-700 font-bold mb-2">تنبيه مهم:</p>
+        <ul class="text-xs text-gray-600 space-y-1">
+            <li>&#8226; السهم اللي ينزل 50% ممكن ينزل 50% ثاني. النزول مو ضمان للارتفاع</li>
+            <li>&#8226; "اشتري" تعني الإشارات الفنية إيجابية - مو ضمان ربح</li>
+            <li>&#8226; دائماً استخدم وقف الخسارة. لا تخاطر بأكثر مما تتحمل خسارته</li>
+            <li>&#8226; التعافي يحتاج صبر (1-6 شهور) - هذي مو فرص سريعة</li>
+            <li>&#8226; هذا تحليل فني وليس نصيحة مالية. استشر مستشار مرخص</li>
+        </ul>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Search & Filter - Tadawul Advisor{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h2 class="text-2xl font-bold text-gray-900">Search & Filter Stocks</h2>
+    <p class="text-sm text-gray-500 mt-1">Find stocks by name, ticker, sector, or filter by criteria</p>
+</div>
+
+<!-- Search & Filter Bar -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
+    <form hx-get="/api/search" hx-target="#results" hx-trigger="submit, change from:.filter-input delay:300ms"
+          hx-indicator="#loading" class="space-y-4">
+
+        <!-- Search Input -->
+        <div class="relative">
+            <svg class="absolute left-3 top-3 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input type="text" name="q" placeholder="Search by stock name or ticker (e.g., Aramco, 2222)..."
+                   class="filter-input w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                   hx-get="/api/search" hx-target="#results" hx-trigger="keyup changed delay:500ms" hx-indicator="#loading">
+        </div>
+
+        <!-- Filter Row -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <!-- Sector -->
+            <div>
+                <label class="text-xs font-medium text-gray-500 uppercase block mb-1">Sector</label>
+                <select name="sector" class="filter-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                    <option value="">All Sectors</option>
+                    {% for sector in sectors %}
+                    <option value="{{ sector.id }}">{{ sector.id }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Investment Type -->
+            <div>
+                <label class="text-xs font-medium text-gray-500 uppercase block mb-1">Investment Type</label>
+                <select name="type" class="filter-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                    <option value="">All Types</option>
+                    <option value="short">Short-term</option>
+                    <option value="long">Long-term</option>
+                </select>
+            </div>
+
+            <!-- Min Price -->
+            <div>
+                <label class="text-xs font-medium text-gray-500 uppercase block mb-1">Min Price (SAR)</label>
+                <input type="number" name="min_price" placeholder="0" step="1"
+                       class="filter-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+
+            <!-- Max Price -->
+            <div>
+                <label class="text-xs font-medium text-gray-500 uppercase block mb-1">Max Price (SAR)</label>
+                <input type="number" name="max_price" placeholder="Any" step="1"
+                       class="filter-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+
+            <!-- Recommendation -->
+            <div>
+                <label class="text-xs font-medium text-gray-500 uppercase block mb-1">Recommendation</label>
+                <select name="action" class="filter-input w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                    <option value="">All</option>
+                    <option value="Strong Buy">Strong Buy Only</option>
+                    <option value="Buy">Buy & Strong Buy</option>
+                    <option value="Hold">Hold Only</option>
+                    <option value="Avoid">Avoid Only</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+            <button type="submit" class="px-5 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium">
+                Apply Filters
+            </button>
+            <div id="loading" class="htmx-indicator flex items-center space-x-2">
+                <div class="spinner"></div>
+                <span class="text-sm text-gray-500">Loading...</span>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Results -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div id="results" hx-get="/api/search" hx-trigger="load" hx-indicator="#loading">
+        <div class="text-center py-12 text-gray-400">
+            <div class="spinner mx-auto mb-3"></div>
+            <p>Loading all stocks...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

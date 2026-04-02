@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Tadawul Advisor{% endblock %}
+
+{% block content %}
+{% if error %}
+<div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <p class="text-red-700 text-sm">{{ error }}</p>
+</div>
+{% endif %}
+
+<!-- ═══ QUICK NAVIGATION GUIDE ═══ -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
+    <h3 class="text-sm font-bold text-gray-700 mb-3">
+        <span x-show="lang==='en'">Where to start? Pages ranked by importance:</span>
+        <span x-show="lang==='ar'" x-cloak>من وين تبدأ؟ الصفحات مرتبة من الأهم:</span>
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <a href="/opportunities" class="group p-4 bg-emerald-50 rounded-xl border-2 border-emerald-200 hover:border-emerald-400 transition-all hover:shadow-md">
+            <div class="flex items-center space-x-2 mb-2">
+                <span class="w-6 h-6 bg-emerald-600 text-white rounded-full text-xs flex items-center justify-center font-black">1</span>
+                <span class="font-bold text-emerald-800 text-sm">10%+ Opportunities</span>
+            </div>
+            <p class="text-xs text-emerald-600">
+                <span x-show="lang==='en'">Ready-to-trade 10%+ profit setups</span>
+                <span x-show="lang==='ar'" x-cloak>فرص ربح 10%+ جاهزة للدخول الآن</span>
+            </p>
+            <p class="text-[10px] text-gray-400 mt-1">
+                <span x-show="lang==='en'">Best short-term trading opportunities</span>
+                <span x-show="lang==='ar'" x-cloak>أفضل فرص التداول قصير المدى</span>
+            </p>
+        </a>
+        <a href="/bottom-fishing" class="group p-4 bg-amber-50 rounded-xl border-2 border-amber-200 hover:border-amber-400 transition-all hover:shadow-md">
+            <div class="flex items-center space-x-2 mb-2">
+                <span class="w-6 h-6 bg-amber-600 text-white rounded-full text-xs flex items-center justify-center font-black">2</span>
+                <span class="font-bold text-amber-800 text-sm">Bottom Fishing</span>
+            </div>
+            <p class="text-xs text-amber-600">
+                <span x-show="lang==='en'">Beaten-down stocks with honest advice</span>
+                <span x-show="lang==='ar'" x-cloak>اسهم بالقاع مع نصيحة صادقة</span>
+            </p>
+            <p class="text-[10px] text-gray-400 mt-1">
+                <span x-show="lang==='en'">Long-term investment (1-6 months)</span>
+                <span x-show="lang==='ar'" x-cloak>استثمار طويل المدى (1-6 شهور)</span>
+            </p>
+        </a>
+        <a href="/swing" class="group p-4 bg-blue-50 rounded-xl border-2 border-blue-200 hover:border-blue-400 transition-all hover:shadow-md">
+            <div class="flex items-center space-x-2 mb-2">
+                <span class="w-6 h-6 bg-blue-600 text-white rounded-full text-xs flex items-center justify-center font-black">3</span>
+                <span class="font-bold text-blue-800 text-sm">Swing Trade</span>
+            </div>
+            <p class="text-xs text-blue-600">
+                <span x-show="lang==='en'">Enter a stock name - is NOW the right time to buy?</span>
+                <span x-show="lang==='ar'" x-cloak>ادخل اسم سهم وشوف هل الوقت مناسب للشراء؟</span>
+            </p>
+            <p class="text-[10px] text-gray-400 mt-1">
+                <span x-show="lang==='en'">3-7 day trades</span>
+                <span x-show="lang==='ar'" x-cloak>تداول 3-7 أيام</span>
+            </p>
+        </a>
+        <a href="/" class="group p-4 bg-gray-50 rounded-xl border-2 border-gray-200 hover:border-gray-400 transition-all hover:shadow-md">
+            <div class="flex items-center space-x-2 mb-2">
+                <span class="w-6 h-6 bg-gray-500 text-white rounded-full text-xs flex items-center justify-center font-black">4</span>
+                <span class="font-bold text-gray-700 text-sm">Dashboard</span>
+            </div>
+            <p class="text-xs text-gray-500">
+                <span x-show="lang==='en'">Market overview & top 10 stocks</span>
+                <span x-show="lang==='ar'" x-cloak>نظرة عامة على السوق وأفضل 10 أسهم</span>
+            </p>
+            <p class="text-[10px] text-gray-400 mt-1">
+                <span x-show="lang==='en'">You are here</span>
+                <span x-show="lang==='ar'" x-cloak>أنت هنا الآن</span>
+            </p>
+        </a>
+        <a href="/search" class="group p-4 bg-gray-50 rounded-xl border-2 border-gray-200 hover:border-gray-400 transition-all hover:shadow-md">
+            <div class="flex items-center space-x-2 mb-2">
+                <span class="w-6 h-6 bg-gray-500 text-white rounded-full text-xs flex items-center justify-center font-black">5</span>
+                <span class="font-bold text-gray-700 text-sm">Search & Filter</span>
+            </div>
+            <p class="text-xs text-gray-500">
+                <span x-show="lang==='en'">Browse all stocks by sector & price</span>
+                <span x-show="lang==='ar'" x-cloak>تصفية كل الأسهم حسب القطاع والسعر</span>
+            </p>
+            <p class="text-[10px] text-gray-400 mt-1">
+                <span x-show="lang==='en'">42 Sharia-compliant stocks</span>
+                <span x-show="lang==='ar'" x-cloak>42 سهم شرعي</span>
+            </p>
+        </a>
+    </div>
+</div>
+
+<!-- Market Summary -->
+{% if summary and summary.total %}
+<div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+    <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100 md:col-span-2">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500 font-medium">
+                    <span x-show="lang==='en'">Market Mood</span>
+                    <span x-show="lang==='ar'" x-cloak>حالة السوق</span>
+                </p>
+                <p class="text-2xl font-bold mt-1
+                    {% if 'Bullish' in summary.mood %}text-green-600{% elif 'Bearish' in summary.mood %}text-red-600{% else %}text-yellow-600{% endif %}">
+                    {{ summary.mood }}
+                </p>
+            </div>
+            <div class="w-14 h-14 rounded-full flex items-center justify-center
+                {% if 'Bullish' in summary.mood %}bg-green-100{% elif 'Bearish' in summary.mood %}bg-red-100{% else %}bg-yellow-100{% endif %}">
+                {% if 'Bullish' in summary.mood %}
+                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                {% elif 'Bearish' in summary.mood %}
+                <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6"/></svg>
+                {% else %}
+                <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
+                {% endif %}
+            </div>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">
+            <span x-show="lang==='en'">Average Score: {{ summary.avg_score }}</span>
+            <span x-show="lang==='ar'" x-cloak>متوسط السكور: {{ summary.avg_score }}</span>
+        </p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <p class="text-sm text-gray-500 font-medium">
+            <span x-show="lang==='en'">Buy Signals</span><span x-show="lang==='ar'" x-cloak>إشارات شراء</span>
+        </p>
+        <p class="text-3xl font-bold text-green-600 mt-1">{{ summary.buy }}</p>
+        <p class="text-xs text-gray-400 mt-1">
+            <span x-show="lang==='en'">of {{ summary.total }} stocks</span>
+            <span x-show="lang==='ar'" x-cloak>من {{ summary.total }} سهم</span>
+        </p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <p class="text-sm text-gray-500 font-medium">
+            <span x-show="lang==='en'">Hold Signals</span><span x-show="lang==='ar'" x-cloak>إشارات انتظار</span>
+        </p>
+        <p class="text-3xl font-bold text-yellow-600 mt-1">{{ summary.hold }}</p>
+        <p class="text-xs text-gray-400 mt-1">
+            <span x-show="lang==='en'">of {{ summary.total }} stocks</span>
+            <span x-show="lang==='ar'" x-cloak>من {{ summary.total }} سهم</span>
+        </p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <p class="text-sm text-gray-500 font-medium">
+            <span x-show="lang==='en'">Avoid Signals</span><span x-show="lang==='ar'" x-cloak>إشارات تجنب</span>
+        </p>
+        <p class="text-3xl font-bold text-red-600 mt-1">{{ summary.avoid }}</p>
+        <p class="text-xs text-gray-400 mt-1">
+            <span x-show="lang==='en'">of {{ summary.total }} stocks</span>
+            <span x-show="lang==='ar'" x-cloak>من {{ summary.total }} سهم</span>
+        </p>
+    </div>
+</div>
+
+{% if summary.sectors %}
+<div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100 mb-8">
+    <h3 class="text-lg font-bold text-gray-900 mb-4">
+        <span x-show="lang==='en'">Sector Overview</span>
+        <span x-show="lang==='ar'" x-cloak>نظرة على القطاعات</span>
+    </h3>
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        {% for sector_name, data in summary.sectors.items() %}
+        <div class="bg-gray-50 rounded-lg p-3 text-center">
+            <p class="text-xs font-medium text-gray-500 truncate">{{ sector_name }}</p>
+            <p class="text-lg font-bold {% if data.avg_score >= 65 %}text-green-600{% elif data.avg_score >= 40 %}text-yellow-600{% else %}text-red-600{% endif %}">{{ data.avg_score }}</p>
+            <div class="flex justify-center space-x-1 mt-1">
+                {% if data.buy > 0 %}<span class="text-[10px] bg-green-100 text-green-700 px-1 rounded">{{ data.buy }}B</span>{% endif %}
+                {% if data.hold > 0 %}<span class="text-[10px] bg-yellow-100 text-yellow-700 px-1 rounded">{{ data.hold }}H</span>{% endif %}
+                {% if data.avoid > 0 %}<span class="text-[10px] bg-red-100 text-red-700 px-1 rounded">{{ data.avoid }}A</span>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+<!-- Top Picks -->
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-900">
+            <span x-show="lang==='en'">Top Picks Today</span>
+            <span x-show="lang==='ar'" x-cloak>أفضل الأسهم اليوم</span>
+        </h2>
+        <p class="text-sm text-gray-500 mt-1">
+            <span x-show="lang==='en'">AI-ranked stock recommendations based on technical analysis</span>
+            <span x-show="lang==='ar'" x-cloak>توصيات مرتبة بالذكاء الاصطناعي بناءً على التحليل الفني</span>
+            <span class="inline-block ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+                <span x-show="lang==='en'">Sharia-Compliant</span>
+                <span x-show="lang==='ar'" x-cloak>متوافق مع الشريعة</span>
+            </span>
+        </p>
+    </div>
+    <a href="/search" class="text-sm text-primary-600 hover:text-primary-700 font-medium">
+        <span x-show="lang==='en'">View All &rarr;</span>
+        <span x-show="lang==='ar'" x-cloak>&larr; عرض الكل</span>
+    </a>
+</div>
+
+<div id="top-picks-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    {% include "partials/stock_cards.html" with context %}
+</div>
+{% endblock %}

@@ -1,0 +1,776 @@
+{% extends "base.html" %}
+{% block title %}{{ deep.overview.name if deep else 'Report' }} - Deep Analysis{% endblock %}
+
+{% block extra_head %}
+<style>
+    .report-section { scroll-margin-top: 80px; }
+    .metric-card { @apply bg-gray-50 rounded-lg p-4 text-center; }
+    .section-title { @apply text-xl font-bold text-gray-900 mb-4 pb-2 border-b border-gray-200; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if error %}
+<div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+    <p class="text-red-700">{{ error }}</p>
+    <a href="/" class="text-primary-600 mt-2 inline-block">Back to Dashboard</a>
+</div>
+{% elif rec and deep %}
+
+<!-- Breadcrumb -->
+<div class="flex items-center space-x-2 text-sm text-gray-500 mb-4">
+    <a href="/" class="hover:text-primary-600">Dashboard</a>
+    <span>/</span>
+    <a href="/stock/{{ ticker }}" class="hover:text-primary-600">{{ deep.overview.name }}</a>
+    <span>/</span>
+    <span class="text-gray-900 font-medium">Deep Analysis Report</span>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     TABLE OF CONTENTS
+     ══════════════════════════════════════════════════════════════ -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
+    <div class="flex flex-wrap gap-3 text-sm">
+        <a href="#verdict" class="px-3 py-1.5 bg-primary-50 text-primary-700 rounded-full font-medium hover:bg-primary-100">Verdict</a>
+        <a href="#valuation" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200">Valuation</a>
+        <a href="#revenue" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200">Revenue Streams</a>
+        <a href="#spending" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200">Spending Analysis</a>
+        <a href="#financials" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200">Financial Health</a>
+        <a href="#competitors" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200">Competitors</a>
+        <a href="#supply-chain" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200">Supply Chain & China Risk</a>
+        <a href="#executives" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200">Executives</a>
+        <a href="#technicals" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200">Technical Analysis</a>
+        <a href="#action-plan" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200">Action Plan</a>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     HEADER: COMPANY + VERDICT
+     ══════════════════════════════════════════════════════════════ -->
+<div id="verdict" class="report-section bg-white rounded-xl shadow-sm border-2 p-6 mb-6
+    {% if rec.action == 'Strong Buy' %}border-emerald-400{% elif rec.action == 'Buy' %}border-green-300{% elif rec.action == 'Avoid' %}border-red-300{% else %}border-yellow-300{% endif %}">
+
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">{{ deep.overview.name }}</h1>
+            <p class="text-gray-500 mt-1">
+                {{ ticker }} &middot; {{ deep.overview.industry }} &middot; {{ deep.overview.city }}, {{ deep.overview.country }}
+                {% if rec.stock.sharia %}
+                <span class="inline-block ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">Sharia-Compliant</span>
+                {% endif %}
+            </p>
+            {% if rec.stock.sharia_note %}
+            <p class="text-xs text-green-600 mt-1">{{ rec.stock.sharia_note }}</p>
+            {% endif %}
+            {% if deep.overview.employees %}
+            <p class="text-xs text-gray-400 mt-1">{{ "{:,}".format(deep.overview.employees) }} employees</p>
+            {% endif %}
+        </div>
+        <div class="text-right">
+            <p class="text-4xl font-bold text-gray-900">{{ "%.2f"|format(rec.stock.current_price) }} <span class="text-lg text-gray-400">SAR</span></p>
+            <p class="text-sm mt-1 {% if rec.stock.change_pct > 0 %}text-green-600{% elif rec.stock.change_pct < 0 %}text-red-600{% else %}text-gray-500{% endif %}">
+                {% if rec.stock.change_pct > 0 %}+{% endif %}{{ "%.2f"|format(rec.stock.change_pct) }}%
+            </p>
+        </div>
+    </div>
+
+    <!-- Verdict Box -->
+    <div class="mt-6 p-5 rounded-xl
+        {% if rec.action == 'Strong Buy' %}bg-emerald-50 border border-emerald-200
+        {% elif rec.action == 'Buy' %}bg-green-50 border border-green-200
+        {% elif rec.action == 'Avoid' %}bg-red-50 border border-red-200
+        {% else %}bg-yellow-50 border border-yellow-200{% endif %}">
+
+        <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center space-x-3">
+                <span class="text-2xl font-black
+                    {% if rec.action == 'Strong Buy' %}text-emerald-700
+                    {% elif rec.action == 'Buy' %}text-green-700
+                    {% elif rec.action == 'Avoid' %}text-red-700
+                    {% else %}text-yellow-700{% endif %}">
+                    {{ rec.action|upper }}
+                </span>
+                <span class="px-3 py-1 rounded-full text-sm font-bold bg-white shadow-sm">
+                    Score: {{ rec.opportunity_score|round(0)|int }}/100
+                </span>
+                <span class="px-3 py-1 rounded-full text-sm font-bold bg-white shadow-sm">
+                    Confidence: {{ rec.confidence|round(0)|int }}%
+                </span>
+                {% if rec.predicted_move > 0 %}
+                <span class="px-3 py-1 rounded-full text-sm font-bold bg-emerald-100 text-emerald-700">
+                    Expected: +{{ "%.1f"|format(rec.predicted_move) }}%
+                </span>
+                {% endif %}
+            </div>
+            <div class="text-sm text-gray-500">
+                Analyst Consensus: <span class="font-bold">{{ deep.analyst.rating }}</span>
+                ({{ deep.analyst.num_analysts }} analysts)
+            </div>
+        </div>
+
+        <p class="text-sm text-gray-700 leading-relaxed">{{ rec.explanation }}</p>
+    </div>
+
+    <!-- Quick Action: Entry / Target / Stop -->
+    <div class="grid grid-cols-3 gap-4 mt-4">
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+            <p class="text-xs text-blue-500 font-bold uppercase">Entry Price</p>
+            <p class="text-2xl font-bold text-blue-700 mt-1">{{ "%.2f"|format(rec.entry_price) }} SAR</p>
+        </div>
+        <div class="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+            <p class="text-xs text-green-500 font-bold uppercase">Target Price</p>
+            <p class="text-2xl font-bold text-green-700 mt-1">{{ "%.2f"|format(rec.target_price) }} SAR</p>
+            <p class="text-xs text-green-500 mt-1">Analyst Target: {{ "%.2f"|format(deep.analyst.target_mean) if deep.analyst.target_mean else 'N/A' }}</p>
+        </div>
+        <div class="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
+            <p class="text-xs text-red-500 font-bold uppercase">Stop Loss</p>
+            <p class="text-2xl font-bold text-red-700 mt-1">{{ "%.2f"|format(rec.stop_loss) }} SAR</p>
+            <p class="text-xs text-red-500 mt-1">Analyst Low: {{ "%.2f"|format(deep.analyst.target_low) if deep.analyst.target_low else 'N/A' }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     VALUATION METRICS
+     ══════════════════════════════════════════════════════════════ -->
+<div id="valuation" class="report-section bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+    <h2 class="section-title">Valuation Analysis</h2>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+        {% set m = deep.metrics %}
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-gray-500 font-medium">Market Cap</p>
+            <p class="text-lg font-bold text-gray-900">{{ "%.0f"|format(m.market_cap / 1e9) }}B</p>
+            <p class="text-[10px] text-gray-400">SAR</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-gray-500 font-medium">Trailing P/E</p>
+            <p class="text-lg font-bold {% if m.trailing_pe and m.trailing_pe < 20 %}text-green-600{% elif m.trailing_pe and m.trailing_pe > 30 %}text-red-600{% else %}text-gray-900{% endif %}">
+                {{ "%.1f"|format(m.trailing_pe) if m.trailing_pe else 'N/A' }}x</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-gray-500 font-medium">Forward P/E</p>
+            <p class="text-lg font-bold {% if m.forward_pe and m.forward_pe < 15 %}text-green-600{% else %}text-gray-900{% endif %}">
+                {{ "%.1f"|format(m.forward_pe) if m.forward_pe else 'N/A' }}x</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-gray-500 font-medium">P/B Ratio</p>
+            <p class="text-lg font-bold text-gray-900">{{ "%.1f"|format(m.price_to_book) if m.price_to_book else 'N/A' }}x</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-gray-500 font-medium">EV/EBITDA</p>
+            <p class="text-lg font-bold text-gray-900">{{ "%.1f"|format(m.ev_to_ebitda) if m.ev_to_ebitda else 'N/A' }}x</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-gray-500 font-medium">Beta</p>
+            <p class="text-lg font-bold text-gray-900">{{ "%.2f"|format(m.beta) if m.beta else 'N/A' }}</p>
+            <p class="text-[10px] text-gray-400">{% if m.beta and m.beta < 1 %}Lower risk{% else %}Higher risk{% endif %}</p>
+        </div>
+    </div>
+
+    <!-- Dividend -->
+    {% if deep.dividend.yield %}
+    <div class="bg-purple-50 rounded-lg p-4 mt-4">
+        <h3 class="text-sm font-bold text-purple-800 mb-2">Dividend Analysis</h3>
+        <div class="grid grid-cols-4 gap-4 text-center">
+            <div>
+                <p class="text-xs text-purple-500">Yield</p>
+                <p class="text-lg font-bold text-purple-700">{{ "%.1f"|format(deep.dividend.yield * 100) }}%</p>
+            </div>
+            <div>
+                <p class="text-xs text-purple-500">Annual Rate</p>
+                <p class="text-lg font-bold text-purple-700">{{ "%.2f"|format(deep.dividend.rate) }} SAR</p>
+            </div>
+            <div>
+                <p class="text-xs text-purple-500">Payout Ratio</p>
+                <p class="text-lg font-bold {% if deep.dividend.payout_ratio > 0.8 %}text-red-600{% else %}text-purple-700{% endif %}">
+                    {{ "%.0f"|format(deep.dividend.payout_ratio * 100) if deep.dividend.payout_ratio else 'N/A' }}%</p>
+            </div>
+            <div>
+                <p class="text-xs text-purple-500">5Y Avg Yield</p>
+                <p class="text-lg font-bold text-purple-700">{{ "%.1f"|format(deep.dividend.five_year_avg_yield) if deep.dividend.five_year_avg_yield else 'N/A' }}%</p>
+            </div>
+        </div>
+        {% if deep.dividend.payout_ratio and deep.dividend.payout_ratio > 0.85 %}
+        <p class="text-xs text-red-600 mt-2 font-medium">Warning: Payout ratio above 85% - dividend may not be sustainable if earnings decline further.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     REVENUE STREAMS ANALYSIS
+     ══════════════════════════════════════════════════════════════ -->
+<div id="revenue" class="report-section bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+    <h2 class="section-title">Revenue Streams Analysis</h2>
+
+    {% set f = deep.financials %}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-blue-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-blue-500 font-medium">Total Revenue</p>
+            <p class="text-xl font-bold text-blue-700">{{ "%.0f"|format(f.revenue / 1e9) if f.revenue else 'N/A' }}B SAR</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-gray-500 font-medium">Revenue Growth</p>
+            <p class="text-xl font-bold {% if f.revenue_growth and f.revenue_growth > 0 %}text-green-600{% elif f.revenue_growth and f.revenue_growth < 0 %}text-red-600{% else %}text-gray-900{% endif %}">
+                {{ "%.1f"|format(f.revenue_growth * 100) if f.revenue_growth else 'N/A' }}%</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-gray-500 font-medium">Gross Margin</p>
+            <p class="text-xl font-bold text-gray-900">{{ "%.1f"|format(f.gross_margins * 100) if f.gross_margins else 'N/A' }}%</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-gray-500 font-medium">EPS (TTM)</p>
+            <p class="text-xl font-bold text-gray-900">{{ "%.2f"|format(f.eps_trailing) if f.eps_trailing else 'N/A' }} SAR</p>
+        </div>
+    </div>
+
+    <!-- Multi-Year Revenue & Earnings Table -->
+    {% if deep.income_history %}
+    <h3 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Multi-Year Financial Performance</h3>
+    <div class="overflow-x-auto mb-6">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 text-left">
+                    <th class="px-4 py-2 font-semibold text-gray-600">Metric</th>
+                    {% for yr in deep.income_history %}
+                    <th class="px-4 py-2 font-semibold text-gray-600 text-right">{{ yr.year }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                <tr>
+                    <td class="px-4 py-2 font-medium">Revenue</td>
+                    {% for yr in deep.income_history %}
+                    <td class="px-4 py-2 text-right">{{ "%.0f"|format(yr.revenue / 1e9) if yr.revenue else '-' }}B</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td class="px-4 py-2 font-medium">Cost of Revenue</td>
+                    {% for yr in deep.income_history %}
+                    <td class="px-4 py-2 text-right text-red-600">{{ "%.0f"|format(yr.cost_of_revenue / 1e9) if yr.cost_of_revenue else '-' }}B</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td class="px-4 py-2 font-medium">Gross Profit</td>
+                    {% for yr in deep.income_history %}
+                    <td class="px-4 py-2 text-right text-green-600">{{ "%.0f"|format(yr.gross_profit / 1e9) if yr.gross_profit else '-' }}B</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td class="px-4 py-2 font-medium">Total Expenses</td>
+                    {% for yr in deep.income_history %}
+                    <td class="px-4 py-2 text-right text-red-600">{{ "%.0f"|format(yr.total_expenses / 1e9) if yr.total_expenses else '-' }}B</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td class="px-4 py-2 font-medium">Operating Income</td>
+                    {% for yr in deep.income_history %}
+                    <td class="px-4 py-2 text-right">{{ "%.0f"|format(yr.operating_income / 1e9) if yr.operating_income else '-' }}B</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td class="px-4 py-2 font-medium">EBITDA</td>
+                    {% for yr in deep.income_history %}
+                    <td class="px-4 py-2 text-right">{{ "%.0f"|format(yr.ebitda / 1e9) if yr.ebitda else '-' }}B</td>
+                    {% endfor %}
+                </tr>
+                <tr class="font-bold">
+                    <td class="px-4 py-2">Net Income</td>
+                    {% for yr in deep.income_history %}
+                    <td class="px-4 py-2 text-right {% if yr.net_income and yr.net_income > 0 %}text-green-700{% else %}text-red-700{% endif %}">
+                        {{ "%.0f"|format(yr.net_income / 1e9) if yr.net_income else '-' }}B</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td class="px-4 py-2 font-medium">EPS</td>
+                    {% for yr in deep.income_history %}
+                    <td class="px-4 py-2 text-right">{{ "%.2f"|format(yr.eps) if yr.eps else '-' }}</td>
+                    {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Revenue Threats -->
+    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-4">
+        <h3 class="text-sm font-bold text-amber-800 mb-2">Revenue Threats & Risks</h3>
+        <ul class="space-y-1">
+            {% if deep.financials.revenue_growth and deep.financials.revenue_growth < 0 %}
+            <li class="flex items-start space-x-2 text-sm text-amber-700">
+                <span class="text-red-500 mt-0.5 font-bold">!</span>
+                <span>Revenue declining at {{ "%.1f"|format(deep.financials.revenue_growth * 100) }}% YoY - watch for trend reversal</span>
+            </li>
+            {% endif %}
+            {% if deep.financials.earnings_growth and deep.financials.earnings_growth < 0 %}
+            <li class="flex items-start space-x-2 text-sm text-amber-700">
+                <span class="text-red-500 mt-0.5 font-bold">!</span>
+                <span>Earnings declining at {{ "%.1f"|format(deep.financials.earnings_growth * 100) }}% - profitability under pressure</span>
+            </li>
+            {% endif %}
+            {% for risk in deep.supply_chain.risks %}
+            <li class="flex items-start space-x-2 text-sm text-amber-700">
+                <span class="text-amber-500 mt-0.5">&#8226;</span>
+                <span>{{ risk }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     SPENDING ANALYSIS
+     ══════════════════════════════════════════════════════════════ -->
+<div id="spending" class="report-section bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+    <h2 class="section-title">Spending & Cash Flow Analysis</h2>
+
+    {% if deep.cash_flow %}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-green-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-green-500 font-medium">Operating Cash Flow</p>
+            <p class="text-lg font-bold text-green-700">{{ "%.0f"|format(deep.cash_flow.operating / 1e9) if deep.cash_flow.operating else 'N/A' }}B</p>
+        </div>
+        <div class="bg-red-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-red-500 font-medium">Capital Expenditure</p>
+            <p class="text-lg font-bold text-red-700">{{ "%.0f"|format(deep.cash_flow.capex / 1e9) if deep.cash_flow.capex else 'N/A' }}B</p>
+        </div>
+        <div class="bg-blue-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-blue-500 font-medium">Free Cash Flow</p>
+            <p class="text-lg font-bold text-blue-700">{{ "%.0f"|format(deep.cash_flow.free_cash_flow / 1e9) if deep.cash_flow.free_cash_flow else 'N/A' }}B</p>
+        </div>
+        <div class="bg-purple-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-purple-500 font-medium">Dividends Paid</p>
+            <p class="text-lg font-bold text-purple-700">{{ "%.0f"|format(deep.cash_flow.dividends_paid / 1e9) if deep.cash_flow.dividends_paid else 'N/A' }}B</p>
+        </div>
+    </div>
+
+    <!-- Spending breakdown visual -->
+    <div class="bg-gray-50 rounded-lg p-4">
+        <h3 class="text-sm font-bold text-gray-700 mb-3">Where the Money Goes</h3>
+        {% if deep.cash_flow.operating %}
+        {% set opcf = deep.cash_flow.operating if deep.cash_flow.operating > 0 else 1 %}
+        <div class="space-y-3">
+            {% if deep.cash_flow.capex %}
+            {% set capex_pct = (deep.cash_flow.capex|abs / opcf * 100) %}
+            <div>
+                <div class="flex justify-between text-sm mb-1">
+                    <span class="text-gray-600">Capital Expenditure (growth investments)</span>
+                    <span class="font-medium">{{ "%.0f"|format(capex_pct) }}% of operating cash</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div class="bg-orange-500 h-3 rounded-full" style="width: {{ [capex_pct, 100]|min }}%"></div>
+                </div>
+            </div>
+            {% endif %}
+            {% if deep.cash_flow.dividends_paid %}
+            {% set div_pct = (deep.cash_flow.dividends_paid|abs / opcf * 100) %}
+            <div>
+                <div class="flex justify-between text-sm mb-1">
+                    <span class="text-gray-600">Dividends to Shareholders</span>
+                    <span class="font-medium">{{ "%.0f"|format(div_pct) }}% of operating cash</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div class="bg-purple-500 h-3 rounded-full" style="width: {{ [div_pct, 100]|min }}%"></div>
+                </div>
+            </div>
+            {% endif %}
+            {% if deep.cash_flow.debt_repayment %}
+            {% set debt_pct = (deep.cash_flow.debt_repayment|abs / opcf * 100) %}
+            <div>
+                <div class="flex justify-between text-sm mb-1">
+                    <span class="text-gray-600">Debt Repayment</span>
+                    <span class="font-medium">{{ "%.0f"|format(debt_pct) }}% of operating cash</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div class="bg-red-500 h-3 rounded-full" style="width: {{ [debt_pct, 100]|min }}%"></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Profitability -->
+    <div class="grid grid-cols-3 gap-4 mt-4">
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-gray-500 font-medium">Gross Margin</p>
+            <p class="text-xl font-bold text-gray-900">{{ "%.1f"|format(f.gross_margins * 100) if f.gross_margins else 'N/A' }}%</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-gray-500 font-medium">Operating Margin</p>
+            <p class="text-xl font-bold text-gray-900">{{ "%.1f"|format(f.operating_margins * 100) if f.operating_margins else 'N/A' }}%</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-gray-500 font-medium">Net Margin</p>
+            <p class="text-xl font-bold text-gray-900">{{ "%.1f"|format(f.profit_margins * 100) if f.profit_margins else 'N/A' }}%</p>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     FINANCIAL HEALTH (BALANCE SHEET)
+     ══════════════════════════════════════════════════════════════ -->
+<div id="financials" class="report-section bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+    <h2 class="section-title">Financial Health</h2>
+
+    {% set bs = deep.balance_sheet %}
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-gray-500 font-medium">Total Cash</p>
+            <p class="text-lg font-bold text-green-600">{{ "%.0f"|format(bs.total_cash / 1e9) if bs.total_cash else 'N/A' }}B</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-gray-500 font-medium">Total Debt</p>
+            <p class="text-lg font-bold text-red-600">{{ "%.0f"|format(bs.total_debt / 1e9) if bs.total_debt else 'N/A' }}B</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-gray-500 font-medium">Debt/Equity</p>
+            <p class="text-lg font-bold {% if bs.debt_to_equity and bs.debt_to_equity < 50 %}text-green-600{% elif bs.debt_to_equity and bs.debt_to_equity > 100 %}text-red-600{% else %}text-gray-900{% endif %}">
+                {{ "%.1f"|format(bs.debt_to_equity) if bs.debt_to_equity else 'N/A' }}%</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-gray-500 font-medium">Current Ratio</p>
+            <p class="text-lg font-bold {% if bs.current_ratio and bs.current_ratio > 1.5 %}text-green-600{% elif bs.current_ratio and bs.current_ratio < 1 %}text-red-600{% else %}text-gray-900{% endif %}">
+                {{ "%.2f"|format(bs.current_ratio) if bs.current_ratio else 'N/A' }}</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-gray-500 font-medium">ROE</p>
+            <p class="text-lg font-bold {% if f.roe and f.roe > 0.15 %}text-green-600{% else %}text-gray-900{% endif %}">
+                {{ "%.1f"|format(f.roe * 100) if f.roe else 'N/A' }}%</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-xs text-gray-500 font-medium">ROA</p>
+            <p class="text-lg font-bold text-gray-900">{{ "%.1f"|format(f.roa * 100) if f.roa else 'N/A' }}%</p>
+        </div>
+    </div>
+
+    <!-- Ownership -->
+    <div class="mt-4 bg-gray-50 rounded-lg p-4">
+        <h3 class="text-sm font-bold text-gray-700 mb-2">Ownership Structure</h3>
+        <div class="flex space-x-6">
+            <div>
+                <span class="text-xs text-gray-500">Insiders</span>
+                <span class="ml-2 font-bold">{{ "%.1f"|format(deep.ownership.insiders_pct * 100) if deep.ownership.insiders_pct else 'N/A' }}%</span>
+            </div>
+            <div>
+                <span class="text-xs text-gray-500">Institutions</span>
+                <span class="ml-2 font-bold">{{ "%.1f"|format(deep.ownership.institutions_pct * 100) if deep.ownership.institutions_pct else 'N/A' }}%</span>
+            </div>
+            <div>
+                <span class="text-xs text-gray-500">Public Float</span>
+                <span class="ml-2 font-bold">{{ "%.1f"|format((1 - deep.ownership.insiders_pct - deep.ownership.institutions_pct) * 100) if deep.ownership.insiders_pct else 'N/A' }}%</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     COMPETITOR COMPARISON
+     ══════════════════════════════════════════════════════════════ -->
+<div id="competitors" class="report-section bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+    <h2 class="section-title">Competitor Comparison</h2>
+
+    {% if deep.competitor_comparison %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 text-left">
+                    <th class="px-3 py-2 font-semibold text-gray-600">Company</th>
+                    <th class="px-3 py-2 font-semibold text-gray-600 text-right">Market Cap</th>
+                    <th class="px-3 py-2 font-semibold text-gray-600 text-right">P/E (Fwd)</th>
+                    <th class="px-3 py-2 font-semibold text-gray-600 text-right">EV/EBITDA</th>
+                    <th class="px-3 py-2 font-semibold text-gray-600 text-right">Profit Margin</th>
+                    <th class="px-3 py-2 font-semibold text-gray-600 text-right">Op. Margin</th>
+                    <th class="px-3 py-2 font-semibold text-gray-600 text-right">ROE</th>
+                    <th class="px-3 py-2 font-semibold text-gray-600 text-right">D/E</th>
+                    <th class="px-3 py-2 font-semibold text-gray-600 text-right">Rev Growth</th>
+                    <th class="px-3 py-2 font-semibold text-gray-600 text-right">Div Yield</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                <!-- Current stock first (highlighted) -->
+                <tr class="bg-primary-50 font-medium">
+                    <td class="px-3 py-2">
+                        <span class="font-bold text-primary-700">{{ deep.overview.name }}</span>
+                        <span class="text-xs text-gray-400 ml-1">{{ ticker }}</span>
+                    </td>
+                    <td class="px-3 py-2 text-right">{{ "%.0f"|format(deep.metrics.market_cap / 1e9) }}B</td>
+                    <td class="px-3 py-2 text-right">{{ "%.1f"|format(deep.metrics.forward_pe) if deep.metrics.forward_pe else '-' }}x</td>
+                    <td class="px-3 py-2 text-right">{{ "%.1f"|format(deep.metrics.ev_to_ebitda) if deep.metrics.ev_to_ebitda else '-' }}x</td>
+                    <td class="px-3 py-2 text-right">{{ "%.1f"|format(f.profit_margins * 100) if f.profit_margins else '-' }}%</td>
+                    <td class="px-3 py-2 text-right">{{ "%.1f"|format(f.operating_margins * 100) if f.operating_margins else '-' }}%</td>
+                    <td class="px-3 py-2 text-right">{{ "%.1f"|format(f.roe * 100) if f.roe else '-' }}%</td>
+                    <td class="px-3 py-2 text-right">{{ "%.1f"|format(bs.debt_to_equity) if bs.debt_to_equity else '-' }}%</td>
+                    <td class="px-3 py-2 text-right {% if f.revenue_growth and f.revenue_growth > 0 %}text-green-600{% elif f.revenue_growth %}text-red-600{% endif %}">
+                        {{ "%.1f"|format(f.revenue_growth * 100) if f.revenue_growth else '-' }}%</td>
+                    <td class="px-3 py-2 text-right">{{ "%.1f"|format(deep.dividend.yield * 100) if deep.dividend.yield else '-' }}%</td>
+                </tr>
+                <!-- Competitors -->
+                {% for comp in deep.competitor_comparison %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-3 py-2">
+                        {{ comp.name }}
+                        <span class="text-xs text-gray-400 ml-1">{{ comp.ticker }}</span>
+                    </td>
+                    <td class="px-3 py-2 text-right">
+                        {% if comp.market_cap %}{{ "%.0f"|format(comp.market_cap / 1e9) }}B {% if comp.currency != 'SAR' %}{{ comp.currency }}{% endif %}{% else %}-{% endif %}
+                    </td>
+                    <td class="px-3 py-2 text-right">{{ "%.1f"|format(comp.forward_pe) if comp.forward_pe else '-' }}x</td>
+                    <td class="px-3 py-2 text-right">{{ "%.1f"|format(comp.ev_to_ebitda) if comp.ev_to_ebitda else '-' }}x</td>
+                    <td class="px-3 py-2 text-right">{{ "%.1f"|format(comp.profit_margins * 100) if comp.profit_margins else '-' }}%</td>
+                    <td class="px-3 py-2 text-right">{{ "%.1f"|format(comp.operating_margins * 100) if comp.operating_margins else '-' }}%</td>
+                    <td class="px-3 py-2 text-right">{{ "%.1f"|format(comp.roe * 100) if comp.roe else '-' }}%</td>
+                    <td class="px-3 py-2 text-right">{{ "%.1f"|format(comp.debt_to_equity) if comp.debt_to_equity else '-' }}%</td>
+                    <td class="px-3 py-2 text-right {% if comp.revenue_growth and comp.revenue_growth > 0 %}text-green-600{% elif comp.revenue_growth %}text-red-600{% endif %}">
+                        {{ "%.1f"|format(comp.revenue_growth * 100) if comp.revenue_growth else '-' }}%</td>
+                    <td class="px-3 py-2 text-right">{{ "%.1f"|format(comp.dividend_yield * 100) if comp.dividend_yield else '-' }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-gray-500 text-sm">Competitor data not available for this stock.</p>
+    {% endif %}
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     SUPPLY CHAIN & CHINA RISK
+     ══════════════════════════════════════════════════════════════ -->
+<div id="supply-chain" class="report-section bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+    <h2 class="section-title">Supply Chain & China Risk Assessment</h2>
+
+    <div class="mb-4">
+        <p class="text-sm text-gray-700 leading-relaxed">{{ deep.supply_chain.overview }}</p>
+    </div>
+
+    <!-- China Exposure -->
+    <div class="p-4 rounded-lg mb-4
+        {% if 'HIGH' in deep.supply_chain.china_exposure %}bg-red-50 border border-red-200
+        {% elif 'MODERATE' in deep.supply_chain.china_exposure %}bg-amber-50 border border-amber-200
+        {% else %}bg-green-50 border border-green-200{% endif %}">
+        <div class="flex items-center space-x-2 mb-2">
+            <span class="px-2 py-0.5 rounded-full text-xs font-bold
+                {% if 'HIGH' in deep.supply_chain.china_exposure %}bg-red-100 text-red-700
+                {% elif 'MODERATE' in deep.supply_chain.china_exposure %}bg-amber-100 text-amber-700
+                {% else %}bg-green-100 text-green-700{% endif %}">
+                {% if 'HIGH' in deep.supply_chain.china_exposure %}HIGH RISK
+                {% elif 'MODERATE' in deep.supply_chain.china_exposure %}MODERATE RISK
+                {% else %}LOW RISK{% endif %}
+            </span>
+            <span class="text-sm font-bold text-gray-800">China Exposure</span>
+        </div>
+        <p class="text-sm text-gray-700">{{ deep.supply_chain.china_exposure }}</p>
+    </div>
+
+    <!-- Risk Items -->
+    <div class="space-y-2">
+        {% for risk in deep.supply_chain.risks %}
+        <div class="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-xs font-bold mt-0.5">!</span>
+            <p class="text-sm text-gray-700">{{ risk }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     EXECUTIVES
+     ══════════════════════════════════════════════════════════════ -->
+<div id="executives" class="report-section bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+    <h2 class="section-title">Executive Leadership</h2>
+
+    {% if deep.executives %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for exec in deep.executives %}
+        <div class="bg-gray-50 rounded-lg p-4">
+            <div class="flex items-start space-x-3">
+                <div class="flex-shrink-0 w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold text-sm">
+                    {{ exec.name.split(' ')[0][0] }}{{ exec.name.split(' ')[-1][0] }}
+                </div>
+                <div>
+                    <p class="font-bold text-gray-900 text-sm">{{ exec.name }}</p>
+                    <p class="text-xs text-gray-500">{{ exec.title }}</p>
+                    {% if exec.age %}
+                    <p class="text-xs text-gray-400 mt-1">Age: {{ exec.age }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-500 text-sm">Executive data not available.</p>
+    {% endif %}
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     TECHNICAL ANALYSIS SUMMARY
+     ══════════════════════════════════════════════════════════════ -->
+<div id="technicals" class="report-section bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+    <h2 class="section-title">Technical Analysis</h2>
+
+    <!-- Price Chart -->
+    <div class="mb-6" style="height: 300px;">
+        <canvas id="reportChart"></canvas>
+    </div>
+
+    <!-- Indicator Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-gray-50 rounded-lg p-3 text-center">
+            <p class="text-xs text-gray-500">RSI (14)</p>
+            <p class="text-xl font-bold {% if rec.signals.rsi < 30 %}text-green-600{% elif rec.signals.rsi > 70 %}text-red-600{% else %}text-gray-900{% endif %}">
+                {{ "%.1f"|format(rec.signals.rsi) }}</p>
+            <p class="text-[10px] text-gray-400">{{ rec.signals.rsi_signal }}</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3 text-center">
+            <p class="text-xs text-gray-500">MACD</p>
+            <p class="text-xl font-bold {% if rec.signals.macd_crossover == 'Bullish' %}text-green-600{% else %}text-red-600{% endif %}">
+                {{ rec.signals.macd_crossover }}</p>
+            <p class="text-[10px] text-gray-400">Hist: {{ "%.3f"|format(rec.signals.macd_histogram) }}</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3 text-center">
+            <p class="text-xs text-gray-500">Trend</p>
+            <p class="text-xl font-bold {% if rec.signals.trend == 'Uptrend' %}text-green-600{% elif rec.signals.trend == 'Downtrend' %}text-red-600{% else %}text-gray-600{% endif %}">
+                {{ rec.signals.trend }}</p>
+            <p class="text-[10px] text-gray-400">{{ rec.signals.ma_signal }}</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3 text-center">
+            <p class="text-xs text-gray-500">Volume</p>
+            <p class="text-xl font-bold {% if rec.signals.volume_ratio > 1.5 %}text-green-600{% else %}text-gray-900{% endif %}">
+                {{ "%.1f"|format(rec.signals.volume_ratio) }}x avg</p>
+            <p class="text-[10px] text-gray-400">{{ rec.signals.volume_signal }}</p>
+        </div>
+    </div>
+
+    <!-- Score Breakdown -->
+    <div class="mt-6">
+        <h3 class="text-sm font-bold text-gray-700 mb-3">Score Breakdown</h3>
+        {% set labels = {'momentum': 'Momentum', 'macd': 'MACD', 'rsi': 'RSI', 'trend': 'Trend', 'volume': 'Volume', 'breakout': 'Breakout', 'volatility': 'Volatility', 'support_resistance': 'S/R Levels'} %}
+        <div class="space-y-2">
+            {% for key, value in rec.score_breakdown.items() %}
+            <div class="flex items-center space-x-3">
+                <span class="text-xs text-gray-500 w-24">{{ labels.get(key, key) }}</span>
+                <div class="flex-1 bg-gray-200 rounded-full h-2.5">
+                    <div class="h-2.5 rounded-full {% if value >= 65 %}bg-green-500{% elif value >= 40 %}bg-yellow-500{% else %}bg-red-500{% endif %}"
+                         style="width: {{ value }}%"></div>
+                </div>
+                <span class="text-xs font-bold w-10 text-right">{{ value|round(0)|int }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     ACTION PLAN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="action-plan" class="report-section bg-white rounded-xl shadow-sm border-2 p-6 mb-6
+    {% if rec.action == 'Strong Buy' %}border-emerald-400{% elif rec.action == 'Buy' %}border-green-300{% elif rec.action == 'Avoid' %}border-red-300{% else %}border-yellow-300{% endif %}">
+    <h2 class="section-title">Action Plan (You Don't Own This Stock)</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Entry -->
+        <div class="bg-blue-50 rounded-xl p-5">
+            <h3 class="font-bold text-blue-800 mb-2">Entry Strategy</h3>
+            <p class="text-2xl font-bold text-blue-700">{{ "%.2f"|format(rec.entry_price) }} SAR</p>
+            <p class="text-sm text-blue-600 mt-2">Enter at current market price. Consider scaling in with 50% now and 50% on any pullback to {{ "%.2f"|format(rec.signals.support) }} SAR (support).</p>
+        </div>
+
+        <!-- Target -->
+        <div class="bg-green-50 rounded-xl p-5">
+            <h3 class="font-bold text-green-800 mb-2">Target</h3>
+            <p class="text-2xl font-bold text-green-700">{{ "%.2f"|format(rec.target_price) }} SAR</p>
+            <p class="text-sm text-green-600 mt-2">
+                Technical target based on momentum.
+                {% if deep.analyst.target_mean %}Analyst consensus target: {{ "%.2f"|format(deep.analyst.target_mean) }} SAR (range: {{ "%.2f"|format(deep.analyst.target_low) }} - {{ "%.2f"|format(deep.analyst.target_high) }}).{% endif %}
+            </p>
+        </div>
+
+        <!-- Stop Loss -->
+        <div class="bg-red-50 rounded-xl p-5">
+            <h3 class="font-bold text-red-800 mb-2">Stop Loss</h3>
+            <p class="text-2xl font-bold text-red-700">{{ "%.2f"|format(rec.stop_loss) }} SAR</p>
+            <p class="text-sm text-red-600 mt-2">
+                Exit immediately if price drops below this level.
+                Maximum risk per share: {{ "%.2f"|format(rec.entry_price - rec.stop_loss) }} SAR
+                ({{ "%.1f"|format((rec.entry_price - rec.stop_loss) / rec.entry_price * 100) }}%).
+            </p>
+        </div>
+    </div>
+
+    <!-- Risk/Reward -->
+    {% if rec.target_price > rec.entry_price and rec.entry_price > rec.stop_loss %}
+    {% set reward = rec.target_price - rec.entry_price %}
+    {% set risk = rec.entry_price - rec.stop_loss %}
+    <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+        <div class="grid grid-cols-3 gap-4 text-center">
+            <div>
+                <p class="text-xs text-gray-500">Potential Upside</p>
+                <p class="text-lg font-bold text-green-600">+{{ "%.1f"|format(reward / rec.entry_price * 100) }}%</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500">Risk/Reward Ratio</p>
+                <p class="text-lg font-bold text-primary-700">1 : {{ "%.1f"|format(reward / risk if risk > 0 else 0) }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500">Max Downside (to stop)</p>
+                <p class="text-lg font-bold text-red-600">-{{ "%.1f"|format(risk / rec.entry_price * 100) }}%</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Final Note -->
+    <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+        <p class="text-sm text-amber-800">
+            <span class="font-bold">Disclaimer:</span> This analysis is based on technical indicators, publicly available financial data, and AI-driven scoring.
+            It does not constitute financial advice. Past performance does not guarantee future results.
+            Always conduct your own due diligence and consider consulting a licensed financial advisor before making investment decisions.
+        </p>
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% if chart_data %}
+<script>
+const chartData = {{ chart_data|tojson }};
+const ctx = document.getElementById('reportChart');
+if (ctx && chartData.length) {
+    const closes = chartData.map(d => d.close);
+    const isUp = closes[closes.length - 1] >= closes[0];
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartData.map(d => d.date),
+            datasets: [{
+                label: 'Close Price (SAR)',
+                data: closes,
+                borderColor: isUp ? '#22c55e' : '#ef4444',
+                backgroundColor: isUp ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+                fill: true,
+                tension: 0.3,
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHitRadius: 10,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { maxTicksLimit: 10, font: { size: 11 } }, grid: { display: false } },
+                y: { ticks: { font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.05)' } }
+            }
+        }
+    });
+}
+</script>
+{% endif %}
+{% endblock %}

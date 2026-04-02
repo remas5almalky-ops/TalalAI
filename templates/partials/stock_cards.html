@@ -1,0 +1,100 @@
+{% for rec in recommendations %}
+<div class="stock-card bg-white rounded-xl shadow-sm border-l-4
+    {% if rec.action == 'Strong Buy' %}border-emerald-500{% elif rec.action == 'Buy' %}border-green-500{% elif rec.action == 'Avoid' %}border-red-500{% else %}border-yellow-500{% endif %}
+    p-5 hover:shadow-md">
+
+    <div class="flex justify-between items-start mb-3">
+        <div>
+            <a href="/stock/{{ rec.stock.ticker }}" class="text-lg font-bold text-gray-900 hover:text-primary-600 transition-colors">
+                {{ rec.stock.name }}
+            </a>
+            <p class="text-sm text-gray-500">
+                {{ rec.stock.ticker }} &middot; {{ rec.stock.sector }}
+                {% if rec.stock.sharia %}<span class="inline-block ml-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded">Sharia</span>{% endif %}
+            </p>
+        </div>
+        <div class="score-circle
+            {% if rec.opportunity_score >= 75 %}bg-emerald-600{% elif rec.opportunity_score >= 58 %}bg-green-500{% elif rec.opportunity_score >= 40 %}bg-yellow-500{% else %}bg-red-500{% endif %}">
+            {{ rec.opportunity_score|round(0)|int }}
+        </div>
+    </div>
+
+    <!-- Price & Change & Predicted Move -->
+    <div class="flex items-center space-x-3 mb-3">
+        <span class="text-2xl font-bold text-gray-900">{{ "%.2f"|format(rec.stock.current_price) }} SAR</span>
+        <span class="text-sm font-medium px-2 py-1 rounded-full
+            {% if rec.stock.change_pct > 0 %}bg-green-100 text-green-700{% elif rec.stock.change_pct < 0 %}bg-red-100 text-red-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+            {% if rec.stock.change_pct > 0 %}+{% endif %}{{ "%.2f"|format(rec.stock.change_pct) }}%
+        </span>
+        {% if rec.predicted_move > 0 %}
+        <span class="text-xs font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-700">
+            &#9650; +{{ "%.1f"|format(rec.predicted_move) }}% expected
+        </span>
+        {% endif %}
+    </div>
+
+    <!-- Recommendation Badge -->
+    <div class="flex items-center space-x-3 mb-3">
+        <span class="px-3 py-1 rounded-full text-sm font-bold
+            {% if rec.action == 'Strong Buy' %}bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300
+            {% elif rec.action == 'Buy' %}bg-green-100 text-green-800
+            {% elif rec.action == 'Avoid' %}bg-red-100 text-red-800
+            {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+            {% if rec.action == 'Strong Buy' %}&#9733; {% endif %}{{ rec.action }}
+        </span>
+        <span class="px-2 py-1 rounded-full text-xs font-medium
+            {% if rec.signals.trend == 'Uptrend' %}bg-green-50 text-green-700{% elif rec.signals.trend == 'Downtrend' %}bg-red-50 text-red-700{% else %}bg-gray-100 text-gray-600{% endif %}">
+            {% if rec.signals.trend == 'Uptrend' %}&#8593;{% elif rec.signals.trend == 'Downtrend' %}&#8595;{% else %}&#8596;{% endif %}
+            {{ rec.signals.trend }}
+        </span>
+        <span class="text-xs text-gray-500">Confidence: {{ rec.confidence|round(0)|int }}%</span>
+    </div>
+
+    <!-- Trading Signals -->
+    <div class="grid grid-cols-3 gap-3 mb-3 bg-gray-50 rounded-lg p-3">
+        <div class="text-center">
+            <p class="text-xs text-gray-500 uppercase">Entry</p>
+            <p class="text-sm font-bold text-blue-600">{{ "%.2f"|format(rec.entry_price) }}</p>
+        </div>
+        <div class="text-center">
+            <p class="text-xs text-gray-500 uppercase">Target</p>
+            <p class="text-sm font-bold text-green-600">{{ "%.2f"|format(rec.target_price) }}</p>
+        </div>
+        <div class="text-center">
+            <p class="text-xs text-gray-500 uppercase">Stop Loss</p>
+            <p class="text-sm font-bold text-red-600">{{ "%.2f"|format(rec.stop_loss) }}</p>
+        </div>
+    </div>
+
+    <!-- Explanation -->
+    <p class="text-sm text-gray-600 leading-relaxed">{{ rec.explanation }}</p>
+
+    <!-- View Details Link -->
+    <div class="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
+        <a href="/stock/{{ rec.stock.ticker }}" class="text-sm text-primary-600 hover:text-primary-700 font-medium">
+            Technical Analysis &rarr;
+        </a>
+        <a href="/report/{{ rec.stock.ticker }}" class="text-sm text-emerald-600 hover:text-emerald-700 font-medium ml-4">
+            Deep Report &rarr;
+        </a>
+        <div class="flex space-x-1">
+            {% if rec.short_term %}
+            <span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-semibold rounded-full">Short-term</span>
+            {% endif %}
+            {% if rec.long_term %}
+            <span class="px-2 py-0.5 bg-purple-50 text-purple-600 text-[10px] font-semibold rounded-full">Long-term</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% if not recommendations %}
+<div class="col-span-full text-center py-12 text-gray-500">
+    <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <p class="text-lg font-medium">No recommendations available</p>
+    <p class="text-sm">Data may still be loading. Please try refreshing.</p>
+</div>
+{% endif %}

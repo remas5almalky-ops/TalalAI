@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Saudi Stock Advisor{% endblock %}</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a5f' },
+                        success: { 50: '#f0fdf4', 500: '#22c55e', 600: '#16a34a', 700: '#15803d' },
+                        danger: { 50: '#fef2f2', 500: '#ef4444', 600: '#dc2626', 700: '#b91c1c' },
+                        warning: { 50: '#fffbeb', 500: '#f59e0b', 600: '#d97706' },
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+        .htmx-indicator { opacity: 0; transition: opacity 200ms; }
+        .htmx-request .htmx-indicator { opacity: 1; }
+        .htmx-request.htmx-indicator { opacity: 1; }
+
+        /* Score circle */
+        .score-circle {
+            width: 64px; height: 64px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 1.1rem; color: white;
+        }
+
+        /* Smooth card hover */
+        .stock-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stock-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px; height: 24px;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Pulse animation for live indicator */
+        .pulse-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        /* Fade-in for lookup results */
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Lookup panel slide */
+        .lookup-panel-enter {
+            animation: slideUp 0.25s ease-out;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Autocomplete highlight */
+        .suggest-item:hover, .suggest-item.active {
+            background-color: #eff6ff;
+        }
+
+        /* Backdrop blur for overlay */
+        .lookup-backdrop {
+            background: rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(4px);
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50 min-h-screen"
+      x-data="{ darkMode: false, lang: localStorage.getItem('lang') || 'en' }"
+      x-init="$watch('lang', v => { localStorage.setItem('lang', v); document.documentElement.dir = v === 'ar' ? 'rtl' : 'ltr'; document.documentElement.lang = v; }); if(lang === 'ar') { document.documentElement.dir = 'rtl'; document.documentElement.lang = 'ar'; }"
+      :class="{ 'dark': darkMode }">
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <a href="/" class="flex items-center space-x-3 flex-shrink-0">
+                    <div class="w-10 h-10 bg-primary-700 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                    </div>
+                    <div class="hidden sm:block">
+                        <h1 class="text-lg font-bold text-primary-900">Tadawul Advisor</h1>
+                        <p class="text-xs text-green-600 font-medium">Sharia-Compliant Stocks Only</p>
+                    </div>
+                </a>
+
+                <!-- === GLOBAL QUICK LOOKUP BAR === -->
+                <div class="flex-1 max-w-lg mx-4 relative"
+                     x-data="stockLookup()"
+                     @click.outside="closeSuggestions()"
+                     @keydown.escape.window="closeSuggestions(); closePanel();">
+
+                    <!-- Search Input -->
+                    <div class="relative">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <input type="text"
+                               x-model="query"
+                               @input.debounce.200ms="fetchSuggestions()"
+                               @focus="if(query.length >= 1) showSuggestions = true"
+                               @keydown.arrow-down.prevent="moveDown()"
+                               @keydown.arrow-up.prevent="moveUp()"
+                               @keydown.enter.prevent="submitLookup()"
+                               placeholder="Quick lookup: stock name or ticker..."
+                               class="w-full pl-9 pr-10 py-2 text-sm border border-gray-200 rounded-lg
+                                      focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none
+                                      bg-gray-50 focus:bg-white transition-colors"
+                               autocomplete="off">
+                        <!-- Loading indicator inside input -->
+                        <div x-show="loading" x-cloak class="absolute right-3 top-1/2 -translate-y-1/2">
+                            <div class="spinner" style="width:16px;height:16px;border-width:2px;"></div>
+                        </div>
+                        <!-- Clear button -->
+                        <button x-show="query.length > 0 && !loading" x-cloak
+                                @click="clearAll()"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Autocomplete Dropdown -->
+                    <div x-show="showSuggestions && suggestions.length > 0" x-cloak
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 translate-y-1"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         x-transition:leave="transition ease-in duration-100"
+                         x-transition:leave-start="opacity-100"
+                         x-transition:leave-end="opacity-0"
+                         class="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 z-[60] overflow-hidden">
+                        <template x-for="(item, idx) in suggestions" :key="item.ticker">
+                            <button @click="selectStock(item)"
+                                    @mouseenter="activeIdx = idx"
+                                    :class="{ 'bg-primary-50': activeIdx === idx }"
+                                    class="suggest-item w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-primary-50 transition-colors border-b border-gray-50 last:border-0">
+                                <div class="flex items-center space-x-3">
+                                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 text-xs font-bold text-gray-600"
+                                          x-text="item.ticker.replace('.SR','')"></span>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900" x-text="item.name"></p>
+                                        <p class="text-xs text-gray-400" x-text="item.sector"></p>
+                                    </div>
+                                </div>
+                                <span class="text-xs text-gray-400" x-text="item.name_ar"></span>
+                            </button>
+                        </template>
+                        <div class="px-4 py-2 bg-gray-50 text-[10px] text-gray-400 text-center">
+                            Press Enter to get instant recommendation
+                        </div>
+                    </div>
+                </div>
+                <!-- === END LOOKUP BAR === -->
+
+                <!-- Nav Links - Ordered: Best to least actionable -->
+                <div class="flex items-center space-x-1 flex-shrink-0">
+                    <a href="/opportunities" class="px-2.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs rounded-lg transition-colors hidden md:flex items-center space-x-1">
+                        <span class="w-4 h-4 bg-emerald-600 text-white rounded-full text-[9px] flex items-center justify-center font-black">1</span>
+                        <span>10%+ Opportunities</span>
+                    </a>
+                    <a href="/bottom-fishing" class="px-2.5 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 font-bold text-xs rounded-lg transition-colors hidden md:flex items-center space-x-1">
+                        <span class="w-4 h-4 bg-amber-600 text-white rounded-full text-[9px] flex items-center justify-center font-black">2</span>
+                        <span>Bottom Fishing</span>
+                    </a>
+                    <a href="/swing" class="px-2.5 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-xs rounded-lg transition-colors hidden md:flex items-center space-x-1">
+                        <span class="w-4 h-4 bg-blue-600 text-white rounded-full text-[9px] flex items-center justify-center font-black">3</span>
+                        <span>Swing Trade</span>
+                    </a>
+                    <a href="/" class="px-2.5 py-1.5 text-gray-600 hover:bg-gray-100 font-medium text-xs rounded-lg transition-colors hidden md:flex items-center space-x-1">
+                        <span class="w-4 h-4 bg-gray-400 text-white rounded-full text-[9px] flex items-center justify-center font-black">4</span>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="/search" class="px-2.5 py-1.5 text-gray-600 hover:bg-gray-100 font-medium text-xs rounded-lg transition-colors hidden md:flex items-center space-x-1">
+                        <span class="w-4 h-4 bg-gray-400 text-white rounded-full text-[9px] flex items-center justify-center font-black">5</span>
+                        <span>Search</span>
+                    </a>
+                    <!-- Language Toggle -->
+                    <button @click="lang = lang === 'en' ? 'ar' : 'en'"
+                            class="px-2 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-bold text-gray-600 transition-colors">
+                        <span x-show="lang === 'en'">عربي</span>
+                        <span x-show="lang === 'ar'" x-cloak>EN</span>
+                    </button>
+                    <div class="flex items-center space-x-1 ml-1">
+                        <div class="pulse-dot bg-green-500"></div>
+                        <span class="text-xs text-gray-500 hidden sm:inline">Live</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- === INSTANT LOOKUP RESULT PANEL (slides up from bottom or overlays) === -->
+    <div id="lookup-overlay"
+         x-data="{ open: false }"
+         @lookup-open.window="open = true"
+         @lookup-close.window="open = false"
+         x-show="open" x-cloak>
+        <!-- Backdrop -->
+        <div class="fixed inset-0 lookup-backdrop z-[70]" @click="open = false; $dispatch('lookup-close')"></div>
+        <!-- Panel -->
+        <div class="fixed inset-x-0 bottom-0 sm:inset-auto sm:top-20 sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-xl z-[80]"
+             x-show="open"
+             x-transition:enter="transition ease-out duration-250"
+             x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-2"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 translate-y-0"
+             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-2">
+            <div class="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-gray-200 max-h-[85vh] overflow-y-auto">
+                <!-- Panel header -->
+                <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
+                    <h3 class="text-sm font-semibold text-gray-700">Instant Recommendation</h3>
+                    <button @click="open = false; $dispatch('lookup-close')"
+                            class="p-1 hover:bg-gray-100 rounded-lg transition-colors">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <!-- Result content (loaded via HTMX) -->
+                <div id="lookup-result" class="p-5">
+                    <div class="text-center py-8">
+                        <div class="spinner mx-auto mb-3"></div>
+                        <p class="text-sm text-gray-400">Analyzing stock...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-12">
+        <div class="max-w-7xl mx-auto px-4 py-6">
+            <!-- Quick nav in footer too -->
+            <div class="flex flex-wrap justify-center gap-3 mb-4">
+                <a href="/opportunities" class="text-xs text-emerald-600 hover:text-emerald-800 font-bold">1. 10%+ Opportunities</a>
+                <span class="text-gray-300">|</span>
+                <a href="/bottom-fishing" class="text-xs text-amber-600 hover:text-amber-800 font-bold">2. Bottom Fishing</a>
+                <span class="text-gray-300">|</span>
+                <a href="/swing" class="text-xs text-blue-600 hover:text-blue-800 font-bold">3. Swing Trade</a>
+                <span class="text-gray-300">|</span>
+                <a href="/" class="text-xs text-gray-500 hover:text-gray-700">4. Dashboard</a>
+                <span class="text-gray-300">|</span>
+                <a href="/search" class="text-xs text-gray-500 hover:text-gray-700">5. Search</a>
+            </div>
+            <div class="flex justify-between items-center">
+                <p class="text-sm text-gray-500">
+                    Tadawul Advisor - AI-Powered Saudi Stock Analysis (Sharia-Compliant)
+                </p>
+                <p class="text-xs text-gray-400">
+                    Disclaimer: Recommendations are data-driven and do not guarantee financial returns. Invest responsibly.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Global Stock Lookup Alpine Component -->
+    <script>
+    function stockLookup() {
+        return {
+            query: '',
+            suggestions: [],
+            showSuggestions: false,
+            activeIdx: -1,
+            loading: false,
+            _abortCtrl: null,
+
+            async fetchSuggestions() {
+                const q = this.query.trim();
+                if (q.length < 1) {
+                    this.suggestions = [];
+                    this.showSuggestions = false;
+                    return;
+                }
+                // Cancel previous request
+                if (this._abortCtrl) this._abortCtrl.abort();
+                this._abortCtrl = new AbortController();
+
+                try {
+                    const resp = await fetch('/api/suggest?q=' + encodeURIComponent(q), {
+                        signal: this._abortCtrl.signal
+                    });
+                    this.suggestions = await resp.json();
+                    this.showSuggestions = this.suggestions.length > 0;
+                    this.activeIdx = -1;
+                } catch(e) {
+                    if (e.name !== 'AbortError') console.error(e);
+                }
+            },
+
+            selectStock(item) {
+                this.query = item.name;
+                this.showSuggestions = false;
+                this.doLookup(item.ticker);
+            },
+
+            submitLookup() {
+                if (this.activeIdx >= 0 && this.activeIdx < this.suggestions.length) {
+                    this.selectStock(this.suggestions[this.activeIdx]);
+                } else if (this.query.trim().length > 0) {
+                    this.showSuggestions = false;
+                    this.doLookup(this.query.trim());
+                }
+            },
+
+            async doLookup(q) {
+                this.loading = true;
+                // Open the panel
+                window.dispatchEvent(new CustomEvent('lookup-open'));
+
+                // Show loading state in panel
+                const resultDiv = document.getElementById('lookup-result');
+                resultDiv.innerHTML = '<div class="text-center py-8"><div class="spinner mx-auto mb-3"></div><p class="text-sm text-gray-400">Analyzing stock...</p></div>';
+
+                try {
+                    const resp = await fetch('/api/lookup?q=' + encodeURIComponent(q));
+                    const html = await resp.text();
+                    resultDiv.innerHTML = html;
+
+                    // Re-execute any <script> tags in the response (for sparkline chart)
+                    resultDiv.querySelectorAll('script').forEach(oldScript => {
+                        const newScript = document.createElement('script');
+                        newScript.textContent = oldScript.textContent;
+                        oldScript.replaceWith(newScript);
+                    });
+                } catch(e) {
+                    resultDiv.innerHTML = '<div class="text-center py-8 text-red-500"><p>Error loading recommendation. Please try again.</p></div>';
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            moveDown() {
+                if (this.activeIdx < this.suggestions.length - 1) this.activeIdx++;
+            },
+            moveUp() {
+                if (this.activeIdx > 0) this.activeIdx--;
+            },
+            closeSuggestions() {
+                this.showSuggestions = false;
+                this.activeIdx = -1;
+            },
+            closePanel() {
+                window.dispatchEvent(new CustomEvent('lookup-close'));
+            },
+            clearAll() {
+                this.query = '';
+                this.suggestions = [];
+                this.showSuggestions = false;
+                this.closePanel();
+            },
+        }
+    }
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

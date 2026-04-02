@@ -1,0 +1,208 @@
+<!-- Instant Lookup Result Card -->
+<div class="animate-fade-in">
+    <!-- Header: Name + Score -->
+    <div class="flex items-start justify-between mb-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <h3 class="text-xl font-bold text-gray-900">{{ rec.stock.name }}</h3>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold
+                    {% if rec.action == 'Strong Buy' %}bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300
+                    {% elif rec.action == 'Buy' %}bg-green-100 text-green-800
+                    {% elif rec.action == 'Avoid' %}bg-red-100 text-red-800
+                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                    {% if rec.action == 'Strong Buy' %}&#9733; {% endif %}{{ rec.action }}
+                </span>
+            </div>
+            <p class="text-sm text-gray-500 mt-0.5">
+                {{ rec.stock.ticker }} &middot; {{ rec.stock.sector }} &middot; {{ rec.stock.name_ar }}
+                {% if rec.stock.sharia %}<span class="inline-block ml-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded">Sharia</span>{% endif %}
+            </p>
+        </div>
+        <div class="flex-shrink-0 w-16 h-16 rounded-full flex items-center justify-center text-white text-lg font-bold
+            {% if rec.opportunity_score >= 75 %}bg-emerald-600
+            {% elif rec.opportunity_score >= 58 %}bg-green-500
+            {% elif rec.opportunity_score >= 40 %}bg-yellow-500
+            {% else %}bg-red-500{% endif %}">
+            {{ rec.opportunity_score|round(0)|int }}
+        </div>
+    </div>
+
+    <!-- Price Row -->
+    <div class="flex items-baseline space-x-3 mb-4">
+        <span class="text-3xl font-bold text-gray-900">{{ "%.2f"|format(rec.stock.current_price) }}</span>
+        <span class="text-sm text-gray-400">SAR</span>
+        <span class="text-sm font-semibold px-2 py-0.5 rounded-full
+            {% if rec.stock.change_pct > 0 %}bg-green-100 text-green-700
+            {% elif rec.stock.change_pct < 0 %}bg-red-100 text-red-700
+            {% else %}bg-gray-100 text-gray-600{% endif %}">
+            {% if rec.stock.change_pct > 0 %}+{% endif %}{{ "%.2f"|format(rec.stock.change_pct) }}%
+        </span>
+        <span class="text-xs px-2 py-0.5 rounded-full
+            {% if rec.signals.trend == 'Uptrend' %}bg-green-50 text-green-700
+            {% elif rec.signals.trend == 'Downtrend' %}bg-red-50 text-red-700
+            {% else %}bg-gray-50 text-gray-600{% endif %}">
+            {% if rec.signals.trend == 'Uptrend' %}&#9650;{% elif rec.signals.trend == 'Downtrend' %}&#9660;{% else %}&#9654;{% endif %}
+            {{ rec.signals.trend }}
+        </span>
+        {% if rec.predicted_move > 0 %}
+        <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
+            &#9650; +{{ "%.1f"|format(rec.predicted_move) }}% expected
+        </span>
+        {% endif %}
+    </div>
+
+    <!-- Mini Sparkline Chart -->
+    <div class="mb-4" style="height: 80px;">
+        <canvas id="lookup-sparkline"></canvas>
+    </div>
+
+    <!-- Trading Signals: Entry / Target / Stop -->
+    <div class="grid grid-cols-3 gap-3 mb-4">
+        <div class="bg-blue-50 rounded-lg p-3 text-center">
+            <p class="text-[10px] text-blue-500 font-semibold uppercase tracking-wide">Entry Price</p>
+            <p class="text-lg font-bold text-blue-700">{{ "%.2f"|format(rec.entry_price) }}</p>
+        </div>
+        <div class="bg-green-50 rounded-lg p-3 text-center">
+            <p class="text-[10px] text-green-500 font-semibold uppercase tracking-wide">Target Price</p>
+            <p class="text-lg font-bold text-green-700">{{ "%.2f"|format(rec.target_price) }}</p>
+        </div>
+        <div class="bg-red-50 rounded-lg p-3 text-center">
+            <p class="text-[10px] text-red-500 font-semibold uppercase tracking-wide">Stop Loss</p>
+            <p class="text-lg font-bold text-red-700">{{ "%.2f"|format(rec.stop_loss) }}</p>
+        </div>
+    </div>
+
+    <!-- Key Indicators Row -->
+    <div class="grid grid-cols-4 gap-2 mb-4">
+        <div class="bg-gray-50 rounded-lg p-2 text-center">
+            <p class="text-[10px] text-gray-400 font-semibold uppercase">RSI</p>
+            <p class="text-sm font-bold
+                {% if rec.signals.rsi < 30 %}text-green-600{% elif rec.signals.rsi > 70 %}text-red-600{% else %}text-gray-800{% endif %}">
+                {{ "%.1f"|format(rec.signals.rsi) }}
+            </p>
+            <p class="text-[10px] {% if rec.signals.rsi_signal == 'Oversold' %}text-green-500{% elif rec.signals.rsi_signal == 'Overbought' %}text-red-500{% else %}text-gray-400{% endif %}">
+                {{ rec.signals.rsi_signal }}
+            </p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-2 text-center">
+            <p class="text-[10px] text-gray-400 font-semibold uppercase">MACD</p>
+            <p class="text-sm font-bold
+                {% if rec.signals.macd_crossover == 'Bullish' %}text-green-600{% elif rec.signals.macd_crossover == 'Bearish' %}text-red-600{% else %}text-gray-800{% endif %}">
+                {{ rec.signals.macd_crossover }}
+            </p>
+            <p class="text-[10px] text-gray-400">{{ "%.2f"|format(rec.signals.macd_histogram) }}</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-2 text-center">
+            <p class="text-[10px] text-gray-400 font-semibold uppercase">Bollinger</p>
+            <p class="text-sm font-bold
+                {% if rec.signals.bb_position == 'Lower' %}text-green-600{% elif rec.signals.bb_position == 'Upper' %}text-red-600{% else %}text-gray-800{% endif %}">
+                {{ rec.signals.bb_position }}
+            </p>
+            <p class="text-[10px] text-gray-400">Band position</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-2 text-center">
+            <p class="text-[10px] text-gray-400 font-semibold uppercase">Volume</p>
+            <p class="text-sm font-bold
+                {% if rec.signals.volume_signal == 'High' %}text-green-600{% elif rec.signals.volume_signal == 'Low' %}text-red-600{% else %}text-gray-800{% endif %}">
+                {{ "%.1f"|format(rec.signals.volume_ratio) }}x
+            </p>
+            <p class="text-[10px] text-gray-400">vs avg</p>
+        </div>
+    </div>
+
+    <!-- Explanation -->
+    <div class="bg-gray-50 rounded-lg p-3 mb-4">
+        <p class="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-1">AI Analysis</p>
+        <p class="text-sm text-gray-700 leading-relaxed">{{ rec.explanation }}</p>
+        {% if rec.factors %}
+        <div class="mt-2 flex flex-wrap gap-1">
+            {% for factor in rec.factors[:3] %}
+            <span class="inline-block text-[10px] bg-white border border-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{{ factor }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Confidence + Risk/Reward bar -->
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex-1 mr-4">
+            <div class="flex justify-between text-xs text-gray-500 mb-1">
+                <span>Confidence</span>
+                <span class="font-medium">{{ rec.confidence|round(0)|int }}%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="h-2 rounded-full transition-all duration-500
+                    {% if rec.confidence >= 65 %}bg-green-500{% elif rec.confidence >= 40 %}bg-yellow-500{% else %}bg-red-500{% endif %}"
+                     style="width: {{ rec.confidence }}%"></div>
+            </div>
+        </div>
+        {% if rec.target_price > rec.entry_price and rec.entry_price > rec.stop_loss %}
+        {% set reward = rec.target_price - rec.entry_price %}
+        {% set risk = rec.entry_price - rec.stop_loss %}
+        <div class="text-center flex-shrink-0">
+            <p class="text-[10px] text-gray-400 uppercase">Risk/Reward</p>
+            <p class="text-sm font-bold text-gray-800">1 : {{ "%.1f"|format(reward / risk if risk > 0 else 0) }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center space-x-3">
+        <a href="/stock/{{ rec.stock.ticker }}"
+           class="text-center px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium">
+            Technical
+        </a>
+        <a href="/report/{{ rec.stock.ticker }}"
+           class="flex-1 text-center px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium">
+            Deep Analysis Report
+        </a>
+        <div class="flex space-x-1">
+            {% if rec.short_term %}
+            <span class="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-semibold rounded-full">Short-term</span>
+            {% endif %}
+            {% if rec.long_term %}
+            <span class="px-2 py-1 bg-purple-50 text-purple-600 text-[10px] font-semibold rounded-full">Long-term</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Sparkline chart script -->
+<script>
+(function() {
+    const data = {{ chart_data|tojson }};
+    const ctx = document.getElementById('lookup-sparkline');
+    if (!ctx || !data.length) return;
+
+    const closes = data.map(d => d.close);
+    const isUp = closes[closes.length - 1] >= closes[0];
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(d => d.date),
+            datasets: [{
+                data: closes,
+                borderColor: isUp ? '#22c55e' : '#ef4444',
+                backgroundColor: isUp ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHitRadius: 8,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: {
+                callbacks: { label: function(ctx) { return ctx.parsed.y.toFixed(2) + ' SAR'; } }
+            }},
+            scales: {
+                x: { display: false },
+                y: { display: false }
+            }
+        }
+    });
+})();
+</script>

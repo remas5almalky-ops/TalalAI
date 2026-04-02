@@ -1,0 +1,12 @@
+{# Bilingual text macro: shows EN by default, AR when toggled #}
+{# Usage: {{ t("English text", "النص العربي") }} #}
+{# This outputs a span with Alpine.js bindings #}
+
+{% macro t(en, ar) -%}
+<span x-show="lang==='en'">{{ en }}</span><span x-show="lang==='ar'" x-cloak>{{ ar }}</span>
+{%- endmacro %}
+
+{# Short version for attributes (returns just the Alpine binding) #}
+{% macro ta(en, ar) -%}
+x-text="lang==='en' ? '{{ en }}' : '{{ ar }}'"
+{%- endmacro %}
